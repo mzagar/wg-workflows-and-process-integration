@@ -1,0 +1,164 @@
+# Workflow Design Specification (WDS) for the daily-activity-report example.
+# Machine-readable output of the Workflow Design Method. Validates against
+# ../../descriptor/workflow-descriptor.schema.json. Every code appears in
+# ../../descriptor/registry.yaml (INV-017).
+
+wera_version: v2-descriptor-driven
+
+workflow:
+  id: daily-activity-report
+  name: Daily Activity Report
+  owner: Individual contributor (self-service)
+  intended_outcome: >
+    Produce a concise "Yesterday / Today" status draft from the owner's own
+    activity across several source systems, and deliver exactly one copy to the
+    owner's private channel for post-hoc human review. The workflow never sends
+    the report onward; the owner edits and forwards it manually.
+  authoritative_decision_owner: >
+    The owner, out of band. Within the run there is no decision gate: the model
+    proposes the narrative and the workflow admits it after validation.
+  run_boundary:
+    start: A scheduled working-day-morning timer fires.
+    terminal_outcomes:
+      - COMPLETED                  # draft posted from all configured sources
+      - COMPLETED_WITH_LIMITATION  # draft posted, but a source was unavailable
+      - ABSTAINED                  # no material activity; short note, not a padded draft
+      - FAILED_TECHNICAL           # could not post; surfaced, never silently dropped
+
+intake:
+  inputs:
+    sources: [issue tracker, chat, meetings/calendar, mail]
+    schemas: [canonical-activity-item]
+    data_classification: [personal, work-internal, untrusted-freetext]
+    untrusted_content: true
+  nondeterminism:
+    required: true
+    smallest_semantic_task: >
+      Write a short, readable "Yesterday / Today" narrative that groups and
+      prioritises a heterogeneous list of activity items into prose.
+    reason_rules_insufficient: >
+      Grouping disparate activity into a human-readable summary with the right
+      emphasis is open content generation; templates produce a flat, unreadable
+      dump. Only this narrative step needs a model.
+  requested_authority:
+    may_select_branch: false
+    may_select_tool: false      # the workflow decides which sources to read
+    may_propose_write: true     # the model proposes the report content
+    may_execute_write: false    # a deterministic adapter performs the post
+    may_delegate_goal: false
+  assurance:
+    deterministic_verification: partial   # structure checkable; accuracy is not
+    human_review: false                   # review is post-hoc, outside the run boundary
+    human_approval: false
+    abstention_allowed: true
+  side_effects:
+    level: EF2
+    reversible: true            # a posted message can be edited or deleted
+    idempotent: "yes"
+    compensation_available: true
+  operations:
+    target_readiness: RT1
+    impact: IM1
+    latency_objective: effectively instant; seconds to a few minutes, no human wait
+    per_run_budget: one bounded generation call per run
+    provenance_required: true
+
+design:
+  coordinates:
+    nondeterminism: ND1              # generate narrative content
+    control_flow_authority: workflow
+    actor_topology: single_agent     # one bounded generation step
+    flow_shape: FS5                  # parallel fan-out across sources, then join
+    durability: DUR1                 # runs to completion; no wait, no resume
+    effect_level: EF2                # posting to the private channel = reversible write
+    assurance: AS1                   # output schema validation; review is post-hoc
+    impact: IM1                      # a weak draft is trivially edited before forwarding
+  authority_allocation:
+    control_flow: Workflow runtime, schedule-driven fixed sequence
+    decision: Model proposes the narrative; workflow admits it after validation
+    action_authorisation: Workflow policy permits posting only to the owner's private channel
+    execution: Deterministic chat adapter with single-channel constrained credentials
+    state: Source systems remain authoritative for activity; workflow keeps only a run audit record
+  primitive_graph:
+    nodes:
+      - { id: n1,  primitive: TRG, label: Scheduled working-day-morning trigger }
+      - { id: n2,  primitive: PAR, label: "Fan out to read sources (join: all, with deadline)" }
+      - { id: n3,  primitive: TRO, label: Read issue-tracker activity (read-only) }
+      - { id: n4,  primitive: TRO, label: Read chat activity (read-only) }
+      - { id: n5,  primitive: TRO, label: Read meeting / calendar activity (read-only) }
+      - { id: n6,  primitive: TRO, label: Read mail activity (read-only) }
+      - { id: n7,  primitive: BRL, label: "Dedupe, time-window, drop-list / keep-list filter" }
+      - { id: n8,  primitive: CAS, label: "Assemble bounded, classified context for the model" }
+      - { id: n9,  primitive: UNC, label: Abstain if no material activity }
+      - { id: n10, primitive: GEN, label: Draft Yesterday / Today narrative (proposal) }
+      - { id: n11, primitive: DVL, label: "Validate draft against contract (sections, length, no executed instructions)" }
+      - { id: n12, primitive: SCH, label: Schema conformance of the accepted draft }
+      - { id: n13, primitive: POL, label: Permit posting to the owner's private channel only }
+      - { id: n14, primitive: IDM, label: Idempotency key for the post (run-id + report-date) }
+      - { id: n15, primitive: TRW, label: Post the draft to the private channel (protected effect) }
+      - { id: n16, primitive: AUD, label: Record sources read and draft posted }
+      - { id: n17, primitive: FSK, label: Terminal outcome }
+    edges:
+      - { from: n1,  to: n2 }
+      - { from: n2,  to: n3 }
+      - { from: n2,  to: n4 }
+      - { from: n2,  to: n5 }
+      - { from: n2,  to: n6 }
+      - { from: n3,  to: n7 }
+      - { from: n4,  to: n7 }
+      - { from: n5,  to: n7 }
+      - { from: n6,  to: n7 }
+      - { from: n7,  to: n8 }
+      - { from: n8,  to: n9 }
+      - { from: n9,  to: n10, condition: material activity found }
+      - { from: n9,  to: n17, condition: no material activity -> ABSTAINED }
+      - { from: n10, to: n11 }
+      - { from: n11, to: n12, condition: draft valid }
+      - { from: n11, to: n17, condition: draft fails validation -> FAILED_TECHNICAL }
+      - { from: n12, to: n13 }
+      - { from: n13, to: n14, condition: post permitted }
+      - { from: n14, to: n15 }
+      - { from: n15, to: n16 }
+      - { from: n16, to: n17 }
+  effects:
+    - name: post-daily-report-draft
+      level: EF2
+      idempotency_key: run-id + report-date + channel-id
+      authoriser: Workflow policy (owner's private channel only)
+      executor: Chat adapter (single-channel constrained credentials)
+  selected_profile: EP2
+  selected_pattern: WP01
+  embedded_patterns: [WP00]
+  lifecycle_envelope: null
+  overlays: [OV-02]
+  external_boundaries: [XB-01, XB-02, XB-03, XB-05]
+  runtime_components: [RC-01, RC-02, RC-03, RC-06, RC-07, RC-08, RC-09, RC-10]
+  readiness_tier: RT1
+  conformance_target: CL2
+
+recommendation:
+  deterministic_baseline: >
+    Reading each source over a time window, deduplicating and filtering activity
+    with an explicit drop-list / keep-list, formatting the message, and posting it
+    are all achieved with no model at all (WP00). The model is confined to one step.
+  agent_justification: >
+    Only the narrative summary genuinely needs a model, and only as a single
+    bounded generation step over already-assembled context (WP01, DP-01, DP-03).
+    The model never selects a source, a branch, or a tool, and never performs the
+    write — a deterministic adapter does, under workflow policy.
+  selection_explanation: >
+    ND1 content generation under workflow control flow selects WP01 / EP2. The
+    parallel source harvest with a join sets FS5. The reversible post is EF2, which
+    triggers OV-02 (protected effect) with IDM for duplicate protection. There is no
+    wait, so durability stays DUR1 with no WP08 envelope and no OV-04. Review is
+    post-hoc and out of band, so assurance is AS1 (schema validation) rather than an
+    in-run approval gate — no WP07 / OV-01.
+  alternatives_rejected:
+    - WP07 human-supervised action + OV-01 (the owner reviews after the run ends, in the private channel; an in-run approval gate is needless for a reversible, trivially-correctable draft — DP-01)
+    - WP08 durable envelope + OV-04 (the run is instant with no wait; a failed run simply re-runs on the next schedule, so no resume is needed)
+    - EP4 agent-directed under constraints (the model owns no control flow and fills one slot; avoids AP-01 agent-everywhere and AP-02 silent whole-process agent)
+    - ND2 classification / WP01-as-CLS (this is open narrative generation, not closed-set labelling; DP-07 does not apply because there is no closed set)
+    - EF3 / EF4 for the post (posting to the owner's own private channel is a reversible write, EF2, not transactional or high-impact)
+  mandatory_primitives: [TRO, BRL, CAS, GEN, DVL, POL, IDM, TRW, AUD]
+  required_views: [VW-01, VW-05, VW-07, VW-10]
+  exceptions: []
