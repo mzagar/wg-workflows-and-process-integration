@@ -31,12 +31,12 @@ agent attempts permitted work
 deterministic gate evaluates result
    │ pass                 │ fail
    ▼                      ▼
-exit to controlled effect  retry only while budget and scope permit
+exit to controlled effect  retry only while configured criteria permit
                            │
                            └── otherwise: escalate / stop / fail
 ```
 
-The workflow admits one explicitly bounded task, gives the agent only the tools and scope needed for that task, and evaluates every attempt against a deterministic gate. The gate—not the agent—decides whether the loop has converged. A retry is allowed only while declared iteration, time, and cost budgets remain and the next attempt stays in scope.
+The workflow admits one explicitly bounded task, gives the agent only the tools and scope needed for that task, and evaluates every attempt against a deterministic gate. The gate—not the agent—decides whether the loop has converged. A retry is allowed only while configured retry criteria permit, including scope and declared iteration, time, and cost limits.
 
 ## Invariants (must hold in any implementation)
 
@@ -46,7 +46,7 @@ The workflow admits one explicitly bounded task, gives the agent only the tools 
 - The workflow records attempt number, gate result, and the reason for each retry or terminal outcome.
 - A failed gate result can lead only to a bounded retry, escalation, abstention, or recorded failure—not an unbounded loop.
 - A result that passes the gate but violates scope cannot proceed to a protected effect.
-- Restart resumes from recorded loop state; it does not silently forget previous attempts or reset the budget.
+- After a workflow restart, the loop resumes from recorded state; it does not create a new attempt, silently forget previous attempts, or reset the budget.
 
 ## Failure modes when violated
 

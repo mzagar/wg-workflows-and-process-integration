@@ -13,7 +13,7 @@ The workflow needs a gate based on explicit criteria: tests, contracts, schema c
 
 ## Why this is hard
 
-- Tests can pass while the task is still out of scope or incomplete.
+- A candidate result can pass a technical check yet remain incomplete or outside the declared scope; the gate must evaluate both acceptance criteria and scope.
 - A check can be flaky, stale, or too weak for the decision it controls.
 - A result can be accepted after its inputs or environment changed.
 - Gate evidence can be lost or detached from the candidate result it evaluated.
@@ -31,7 +31,7 @@ run explicit checks and validate policy
 record acceptance evidence     return feedback / stop / escalate
 ```
 
-Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.
+Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Scope may limit the target, permitted change class, data accessed, allowed tools or actions, and permitted effect. Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.
 
 ## Invariants (must hold in any implementation)
 
