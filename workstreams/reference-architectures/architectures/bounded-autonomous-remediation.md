@@ -91,7 +91,11 @@ These are logical capability roles, not a prescribed deployment topology. A plat
 
 ## Pattern composition
 
-The deterministic acceptance gate evaluates each attempt inside the bounded convergence loop. The proposal/execution split keeps the agent's candidate result separate from the external effect: only workflow control may pass an accepted candidate to the constrained executor.
+The patterns have different roles in this architecture:
+
+- The **bounded convergence loop** controls task admission, repeated attempts, and retry or stop decisions.
+- The **deterministic acceptance gate** is used inside that loop to evaluate every candidate result.
+- The **proposal/execution split** is an authority boundary: the agent may propose a candidate, but only workflow control may pass an accepted candidate to the constrained executor.
 
 ```mermaid
 flowchart LR
@@ -111,7 +115,7 @@ flowchart LR
     X["Constrained effect<br/>executor"]
     T["Permitted target"]
 
-    C -->|"Pattern: Proposal/execution split<br/>exact accepted candidate"| X
+    C -->|"Pattern: Proposal/execution split<br/>authority boundary; exact accepted candidate"| X
     X -->|"permitted effect"| T
 ```
 
@@ -121,11 +125,11 @@ Read the diagram from left to right:
 2. The **deterministic acceptance gate** evaluates every candidate result in that loop. A non-accepted result returns to workflow control; an accepted result leaves the loop with recorded evidence.
 3. The **proposal/execution split** prevents the agent from causing the external effect. Workflow control passes only the exact accepted candidate to the constrained executor.
 
-| Pattern | Where it sits | Why it is required here |
-|---|---|---|
-| [Bounded convergence loop](../patterns/bounded-convergence-loop.md) | From task admission through repeated candidate attempts | Gives iteration a finite scope, budget, and safe non-convergence outcomes |
-| [Deterministic acceptance gate](../patterns/deterministic-acceptance-gate.md) | After every candidate result | Provides independent, recorded evidence that a result meets declared acceptance and scope conditions |
-| [Proposal/execution split](../patterns/proposal-execution-split.md) | Between accepted candidate and external effect | Prevents the agent from directly invoking a stronger capability or changing the exact accepted result |
+| Pattern | Relationship in this architecture | Where it sits | Why it is required here |
+|---|---|---|---|
+| [Bounded convergence loop](../patterns/bounded-convergence-loop.md) | Controls task admission, repeated attempts, and retry or stop decisions | From task admission through repeated candidate attempts | Gives iteration a finite scope, budget, and safe non-convergence outcomes |
+| [Deterministic acceptance gate](../patterns/deterministic-acceptance-gate.md) | Used by the convergence loop to evaluate every candidate result | After every candidate result | Provides independent, recorded evidence that a result meets declared acceptance and scope conditions |
+| [Proposal/execution split](../patterns/proposal-execution-split.md) | Separates the agent's proposal from the external effect; workflow control passes only an accepted candidate to the executor | Between accepted candidate and external effect | Prevents the agent from directly invoking a stronger capability or changing the exact accepted result |
 
 **Invalid composition:** giving the agent a credential or tool path that can cause an effect outside the declared scope, or allowing it to execute an effect without the deterministic acceptance evidence. That is not a leaner variant; it removes the independent acceptance and constrained-effect guarantees that define this architecture.
 
@@ -179,7 +183,7 @@ A scheduled or triage-labelled task requests a small dependency bump, lint/type 
 2. **Create the work area.** The workflow creates a fresh isolated sandbox with scoped credentials. The agent cannot alter production, merge, or deploy.
 3. **Produce a candidate.** The agent diagnoses the issue and makes an allowed candidate change in the sandbox.
 4. **Evaluate independently.** Deterministic CI, contract checks, and scope validation evaluate the exact candidate. The evidence is recorded with the candidate identity.
-5. **Converge or stop.** Failure returns feedback for another attempt only while budget and scope allow. Repeated failure, missing evidence, or out-of-scope work escalates or ends the run.
+5. **Converge or stop.** Failure returns feedback for another attempt only while configured retry criteria permit. Repeated failure, missing evidence, or out-of-scope work escalates or ends the run.
 6. **Cause the constrained effect.** The executor opens one pull request for the exact accepted candidate. It records the effect and completes; merge and deployment remain separate decisions.
 
 ### The run over time — where bounded recovery lives
@@ -200,7 +204,7 @@ admit task → create work area → agent attempt → record candidate and gate 
 | If the process dies during… | What happens on restart | What makes it safe |
 |---|---|---|
 | Admission / work-area creation | The workflow resumes or reconciles the declared task and work-area state | Task identity and admission state are recorded before work proceeds |
-| Agent attempt | The workflow reloads the last accepted state; it does not reset budget or silently assume success | Attempt number, budget, and candidate state are durable |
+| Agent attempt | The workflow resumes from recorded loop state; it does not create a new attempt or reset the budget | Attempt number, budget, and candidate state are durable |
 | Gate evaluation | The workflow reconciles the gate result or reruns the deterministic gate for the same candidate | Candidate identity and acceptance evidence are bound together |
 | Constrained effect | The executor reconciles whether the exact effect already occurred before retrying | The effect is constrained and must be idempotent or reconciled |
 | Escalation | The handoff remains discoverable and is not reissued without deduplication | Escalation identity and terminal/parked state are recorded |
