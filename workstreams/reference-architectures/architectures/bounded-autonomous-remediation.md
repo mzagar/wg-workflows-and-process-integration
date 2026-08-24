@@ -7,7 +7,7 @@
 
 ## Status
 
-Draft for working group review. Nothing here is locked. This architecture is proposed as a contrasting companion to the human-approved operation architecture: it permits bounded autonomous iteration where independent acceptance evidence exists, but it does not permit unbounded autonomy or uncontrolled effects.
+Draft for working group review. Nothing here is locked. This architecture is proposed as a contrasting companion to the [human-approved operation](single-agent-human-approval.md): it permits bounded autonomous iteration where independent acceptance evidence exists, but it does not permit unbounded autonomy or uncontrolled effects.
 
 ## Purpose
 
@@ -34,7 +34,7 @@ This architecture guarantees:
 4. **Can the agent be fenced?** The agent needs an isolated or non-authoritative work area and only the tools, credentials, data, time, and budget necessary for this task. If it needs broad standing access, this is not bounded autonomy.
 5. **Is there a safe non-success route?** Repeated failure, exhausted budget, invalid scope, missing gate evidence, or an ambiguous effect result must route to a recorded stop, reconciliation, or human-owned follow-up.
 
-If every answer is yes, this architecture fits. If the answer to questions 2 or 3 is no because a person must decide, use the human-approved operation architecture. If the answer to question 1 or 4 is no, do not force open-ended autonomous work into this architecture; it requires a different job-oriented architecture.
+If every answer is yes, this architecture fits. If the answer to questions 2 or 3 is no because a person must decide, use the [human-approved operation](single-agent-human-approval.md). If the answer to question 1 or 4 is no, do not force open-ended autonomous work into this architecture; it requires a different job-oriented architecture. If the answer to question 5 is no, do not run the task autonomously until a recorded stop, reconciliation, or human-owned follow-up path is defined.
 
 The same checklist works in reverse for an existing workflow: every “no” is an identified gap before treating it as bounded autonomy.
 
@@ -42,7 +42,7 @@ The same checklist works in reverse for an existing workflow: every “no” is 
 
 No variants are currently defined. The following nearby flows are deliberately not variants:
 
-- **Human-approved operation** uses a named human decision before a protected effect. It has a different attribution and authority model.
+- **[Human-approved operation](single-agent-human-approval.md)** uses a named human decision before a protected effect. It has a different attribution and authority model.
 - **Policy-authorized remediation with stronger effects** may retain an independent gate but needs an architecture that defines policy authority, reconciliation, and stronger effect controls.
 - **Open-ended agent work** has no stable enough scope or stopping condition for this bounded convergence loop.
 - **Fleet-wide remediation** fans out across many targets and needs additional composition for target discovery, admission control, batching, and aggregation. This architecture can govern each individual target run but does not define the fleet-wide parent workflow.
