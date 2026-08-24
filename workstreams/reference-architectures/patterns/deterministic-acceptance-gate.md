@@ -3,7 +3,8 @@
 **Solves:** Deciding whether a candidate result may advance using explicit, repeatable checks rather than model self-assessment \
 **Used in:** [Bounded autonomous remediation](../architectures/bounded-autonomous-remediation.md) \
 **Requires capabilities:** Deterministic evaluator · policy/scope validator · evidence store \
-**Related patterns:** [Bounded convergence loop](bounded-convergence-loop.md) · [Proposal/execution split](proposal-execution-split.md)
+**Related patterns:** [Bounded convergence loop](bounded-convergence-loop.md) · [Proposal/execution split](proposal-execution-split.md) \
+**Uses primitives:** [P02 Execution evidence record](../primitives/P02_execution-evidence-record.md)
 
 ## Problem
 
@@ -31,6 +32,18 @@ flowchart TD
 Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Scope may limit the target (the system, record, repository, or resource affected), permitted change class (the kind of modification allowed), data accessed, allowed tools or actions, and permitted effect (the external outcome that may be applied). Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.
 
 The enclosing workflow decides how to handle a non-accepted result—for example, retrying within configured criteria, stopping, escalating, or recording failure. The gate does not make that control-flow decision.
+
+## Primitive composition
+
+The pattern uses an execution evidence record to bind the exact candidate,
+acceptance evidence, and resulting decision.
+
+```mermaid
+flowchart LR
+    C["Candidate result + scope"] --> G["Deterministic evaluation"] --> D["Accepted or non-accepted decision"]
+    G -.-> E["P02: Execution evidence record<br/>candidate identity · evidence · decision"]
+    D -.-> E
+```
 
 ## Invariants (must hold in any implementation)
 

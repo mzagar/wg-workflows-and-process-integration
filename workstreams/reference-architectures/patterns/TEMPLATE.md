@@ -3,7 +3,8 @@
 **Solves:** One-line problem statement \
 **Used in:** Links to the architectures that compose this pattern \
 **Requires capabilities:** Capability roles needed to implement the pattern \
-**Related patterns:** Links to other entries in `patterns/`
+**Related patterns:** Links to other entries in `patterns/` \
+**Uses primitives:** Links to the shared workflow primitives this pattern composes
 
 *(Header convention: every field line ends with a trailing backslash except
 the last; field values start capitalized.)*
@@ -22,6 +23,11 @@ The pulls in different directions that rule out the naive solution. Bullets.
 The shape, in 2–4 boxes. Context-free: no deployment story, no product
 names, no use-case specifics. If the diagram needs more than 4 boxes, it is
 probably a reference architecture, not a pattern.
+
+## Primitive composition
+
+Show where and how each referenced primitive supports this pattern. Keep this
+separate from the solution diagram, which explains the pattern's own flow.
 
 ## Invariants (must hold in any implementation)
 

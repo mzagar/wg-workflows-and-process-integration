@@ -3,7 +3,8 @@
 **Solves:** Safely iterating an agent-assisted task until a deterministic acceptance condition passes, or ending in a defined non-success outcome \
 **Used in:** [Bounded autonomous remediation](../architectures/bounded-autonomous-remediation.md) \
 **Requires capabilities:** Workflow engine · bounded agent/tool environment · deterministic gate · state/context store · audit log \
-**Related patterns:** [Deterministic acceptance gate](deterministic-acceptance-gate.md) · [Proposal/execution split](proposal-execution-split.md) · [Durable wait](durable-wait.md)
+**Related patterns:** [Deterministic acceptance gate](deterministic-acceptance-gate.md) · [Proposal/execution split](proposal-execution-split.md) · [Durable wait](durable-wait.md) \
+**Uses primitives:** [P01 Durable state checkpoint](../primitives/P01_durable-state-checkpoint.md) · [P02 Execution evidence record](../primitives/P02_execution-evidence-record.md)
 
 ## Problem
 
@@ -39,6 +40,19 @@ flowchart TD
 > **Diagram legend:** Orange = agent-driven or probabilistic work. Blue = workflow-controlled capabilities and decisions.
 
 The workflow admits one explicitly bounded task, gives the agent only the tools and scope needed for that task, and evaluates every attempt against a deterministic gate. The gate—not the agent—decides whether the loop has converged. A retry is allowed only while configured retry criteria permit, including scope and declared iteration, time, and cost limits.
+
+## Primitive composition
+
+The pattern uses a durable state checkpoint for resumable loop state and an
+execution evidence record for the decision trail across attempts.
+
+```mermaid
+flowchart LR
+    A["Agent attempt"] --> G["Deterministic gate result"]
+    G --> C["Retry or terminal decision"]
+    C --> S["P01: Durable state checkpoint<br/>attempt · budget · candidate state"]
+    G --> E["P02: Execution evidence record<br/>gate result · retry reason · terminal outcome"]
+```
 
 ## Invariants (must hold in any implementation)
 

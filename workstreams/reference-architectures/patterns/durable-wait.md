@@ -3,7 +3,8 @@
 **Solves:** A run must wait longer than any process hosting it will live \
 **Used in:** [Single-agent process with human approval](../architectures/single-agent-human-approval.md) · any architecture whose run must outwait the processes hosting it \
 **Requires capabilities:** Execution engine · state/context store \
-**Related patterns:** [Human approval gate](human-approval-gate.md) · [proposal/execution split](proposal-execution-split.md)
+**Related patterns:** [Human approval gate](human-approval-gate.md) · [proposal/execution split](proposal-execution-split.md) \
+**Uses primitives:** [P01 Durable state checkpoint](../primitives/P01_durable-state-checkpoint.md)
 
 ## Problem
 
@@ -42,6 +43,17 @@ process) into a *logical* one (a recorded fact: run X is parked, awaiting
 event Y). Durable *state* is an ingredient, not the pattern: a system can
 persist its state after every step and still lose every pending wait on
 deploy, if the waiting itself lives in process memory.
+
+## Primitive composition
+
+The pattern uses a durable state checkpoint to preserve the parked run until an
+event or timeout resumes it.
+
+```mermaid
+flowchart LR
+    P["Workflow parks"] --> C["P01: Durable state checkpoint<br/>position · context · identity · pending wait"]
+    C --> R["Event or timeout resumes the run"]
+```
 
 Resume must restore three things, not just liveness:
 

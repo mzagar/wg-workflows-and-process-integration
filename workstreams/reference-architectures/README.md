@@ -70,6 +70,10 @@ workstreams/reference-architectures/
 │   ├── durable-wait.md
 │   ├── bounded-convergence-loop.md
 │   └── deterministic-acceptance-gate.md
+├── primitives/              # experimental shared workflow building blocks
+│   ├── README.md
+│   ├── P01_durable-state-checkpoint.md
+│   └── P02_execution-evidence-record.md
 ├── decisions/
 │   ├── TEMPLATE.md
 │   └── job-oriented-architecture-model.md

@@ -3,7 +3,8 @@
 **Solves:** A named human must decide whether an exact proposal may cause a protected effect \
 **Used in:** [Single-agent process with human approval](../architectures/single-agent-human-approval.md) \
 **Requires capabilities:** Execution engine · human interaction surface · state/context store · audit log \
-**Related patterns:** [Proposal/execution split](proposal-execution-split.md) · [durable wait](durable-wait.md)
+**Related patterns:** [Proposal/execution split](proposal-execution-split.md) · [durable wait](durable-wait.md) \
+**Uses primitives:** [P01 Durable state checkpoint](../primitives/P01_durable-state-checkpoint.md) · [P02 Execution evidence record](../primitives/P02_execution-evidence-record.md)
 
 ## Problem
 
@@ -39,6 +40,18 @@ Record an explicit approve or reject decision bound to that proposal version.
 Until approval exists, the workflow remains parked and cannot reach the
 protected effect. Timeout and escalation are explicit outcomes, never forms
 of implicit approval.
+
+## Primitive composition
+
+The pattern uses a durable state checkpoint while approval is pending and an
+execution evidence record to bind the decision to the exact reviewed proposal.
+
+```mermaid
+flowchart LR
+    P["Immutable proposal"] --> H["Authorized human decides"]
+    H --> E["P02: Execution evidence record<br/>proposal version · approver · decision · timestamp"]
+    H -. "pending approval" .-> C["P01: Durable state checkpoint<br/>parked run · deadline · correlation"]
+```
 
 ## Invariants (must hold in any implementation)
 
