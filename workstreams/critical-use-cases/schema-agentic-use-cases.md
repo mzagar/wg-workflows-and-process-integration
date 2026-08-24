@@ -41,7 +41,7 @@ A classification dimension marks a structural choice: something a workflow's des
 - **Trigger.** What starts execution: something happening in an external system, a recurring schedule, or a person directly asking.
 - **HITL Pattern.** Where, if anywhere, a person has to act before the workflow can proceed.
 - **Agent Count.** How many separate reasoning agents the workflow uses, and why: task complexity is one reason to split, but so is using a different model per agent, giving agents different or narrower tool access, or other deliberate separation.
-- **Coordination.** Once there's more than one step or more than one agent, who decides what happens next: fixed code following a script, or an LLM reasoning about it at runtime.
+- **Coordination.** Once there's more than one activity or more than one agent, who decides what happens next: fixed code following a script, or an LLM reasoning about it at runtime.
 - **Workflow Pattern.** The shape execution actually takes once it's running: a straight line, concurrent branches that merge back together, or a loop that keeps retrying against a gate until it passes.
 
 Each should describe something the others don't. If two seem to overlap, or a workflow needs a sixth, that's an [open question](#open-questions) to raise, not a reason to force a fit.
@@ -69,7 +69,7 @@ Agent execution time only, not time spent waiting in a human queue or on downstr
 The primary gate in the critical path: the one that blocks progress, not an optional review someone could choose to do.
 
 - **`None`.** No mandatory checkpoint.
-- **`Exception escalation`.** Runs autonomously by default; a person is pulled in only when confidence runs out, or before one specific irreversible step.
+- **`Exception escalation`.** Runs autonomously by default; a person is pulled in only when confidence runs out, or before one specific irreversible activity.
 - **`Approval gate`.** A person acts before a point every run reaches. Covers three sub-cases (transactional, content review, formal sign-off); note which one applies in the row's Notes.
 
 ### Agent Count and Coordination
@@ -82,11 +82,11 @@ Two separate questions. Default to the simpler answer when in doubt.
 - **`Better as multi-agent`.** Not required, but a split demonstrably helps: a writer/critic pair, independent verification, a different model per agent, or giving each agent a different or narrower set of tools than the others.
 - **`Inherently multi-agent`.** Either a single agent's context/tools/execution would degrade the result, or correctness requires certain roles to stay structurally separate (an independent fact-checker, an isolated policy gate).
 
-**Coordination:** is the next step predetermined, or decided by an LLM at runtime?
+**Coordination:** is the next activity predetermined, or decided by an LLM at runtime?
 
 - **`Fixed/scripted`.** Deterministic code decides.
 - **`Single-agent, orchestrated`.** One agent running a dynamic, ReAct-style loop. Only applies with `Single-agent sufficient`.
-- **`AI-coordinated, routing`.** A supervisor delegates at runtime, no multi-step plan.
+- **`AI-coordinated, routing`.** A supervisor delegates at runtime, no multi-activity plan.
 - **`AI-coordinated, planning`.** A supervisor builds and revises a plan.
 - **`Swarm/peer-to-peer`.** Decentralized, all-to-all. Not seen in the inventory yet.
 - **`n/a`.** Single agent, no dynamic loop.
@@ -99,10 +99,10 @@ Four shapes proposed so far, checked in order, first match wins. Likely not a co
 
 1. **`Convergence loop`.** Iterates against a deterministic gate until it passes or escalates.
 2. **`Parallel fan-out`.** Concurrent sub-tasks, merged into one result.
-3. **`Sequential pipeline`.** Dependent steps, each feeding the next.
-4. **`Atomic action`.** None of the above; one indivisible step.
+3. **`Sequential pipeline`.** Dependent activities, each feeding the next.
+4. **`Atomic action`.** None of the above; one indivisible activity.
 
-`Atomic action` is the one value that implies anything else: an indivisible step can't be multi-agent or dynamically coordinated, so `Agent Count = Single-agent sufficient` and `Coordination = n/a` follow automatically. No other Workflow Pattern value implies anything about Agent Count or Coordination. `Sequential pipeline` and `Parallel fan-out` are both silent on fixed vs. dynamic; that's Coordination's job.
+`Atomic action` is the one value that implies anything else: an indivisible activity can't be multi-agent or dynamically coordinated, so `Agent Count = Single-agent sufficient` and `Coordination = n/a` follow automatically. No other Workflow Pattern value implies anything about Agent Count or Coordination. `Sequential pipeline` and `Parallel fan-out` are both silent on fixed vs. dynamic; that's Coordination's job.
 
 ### Scope and limits of the dimensions
 
@@ -158,7 +158,7 @@ For agents that hand off control to each other with no central coordinator and n
 
 ### Where does model selection happen?
 
-Not captured by any dimension today. Which model runs a given step, and who chooses it, is a separate question from Coordination (which is about what runs next, not which model does it): a fully `Fixed/scripted` pipeline can still use different models per phase if that's set by config rather than decided by a reasoning step. Using multiple models isn't on its own grounds for `AI-coordinated`.
+Not captured by any dimension today. Which model runs a given activity, and who chooses it, is a separate question from Coordination (which is about what runs next, not which model does it): a fully `Fixed/scripted` pipeline can still use different models per phase if that's set by config rather than decided by a reasoning activity. Using multiple models isn't on its own grounds for `AI-coordinated`.
 
 This matters because model choice per phase is now a real, cost-driven design decision in production pipelines (cheap model for triage, escalate to a stronger one on failure or risk), and two rows can look identical on every other dimension while behaving very differently on cost and quality depending on how the model is chosen. Broader model infrastructure stays with the Reference Architecture; this is narrower.
 
