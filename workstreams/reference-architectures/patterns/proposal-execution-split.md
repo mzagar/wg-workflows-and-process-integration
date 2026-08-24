@@ -3,7 +3,8 @@
 **Solves:** Enforcing authorization and attribution at the protected-effect boundary when intent comes from a probabilistic agent \
 **Used in:** [Single-agent process with human approval](../architectures/single-agent-human-approval.md) · [Bounded autonomous remediation](../architectures/bounded-autonomous-remediation.md) \
 **Requires capabilities:** Agent · authorization gate · workflow-controlled executor · audit log \
-**Related patterns:** [Human approval gate](human-approval-gate.md) · [durable wait](durable-wait.md)
+**Related patterns:** [Human approval gate](human-approval-gate.md) · [durable wait](durable-wait.md) \
+**Uses primitives:** [P02 Execution evidence record](../primitives/P02_execution-evidence-record.md)
 
 ## Problem
 
@@ -61,6 +62,19 @@ may proceed. A workflow-controlled executor, which the agent cannot invoke,
 performs it. The system of record ties the proposal, authorization evidence,
 and effect to one run. Patterns layered on this one define the authority's
 specific decision and attribution model.
+
+## Primitive composition
+
+The pattern uses an execution evidence record to preserve the chain of custody
+from proposal through authorization to effect.
+
+```mermaid
+flowchart LR
+    P["Agent proposal"] --> A["Authorization evidence"] --> X["Controlled effect"]
+    P -.-> E["P02: Execution evidence record<br/>proposal identity · authorization evidence · effect"]
+    A -.-> E
+    X -.-> E
+```
 
 ## Invariants (must hold in any implementation)
 
