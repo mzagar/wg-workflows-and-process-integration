@@ -91,6 +91,36 @@ These are logical capability roles, not a prescribed deployment topology. A plat
 
 ## Pattern composition
 
+The deterministic acceptance gate evaluates each attempt inside the bounded convergence loop. The proposal/execution split keeps the agent's candidate result separate from the external effect: only workflow control may pass an accepted candidate to the constrained executor.
+
+```mermaid
+flowchart LR
+    subgraph L["Pattern: Bounded convergence loop"]
+        direction LR
+        C["Workflow control<br/>admit · retry · stop"]
+        A["Agent produces<br/>candidate result"]
+        G["Pattern: Deterministic acceptance gate<br/>evaluates acceptance criteria and scope"]
+
+        C -->|"bounded task"| A
+        A -->|"candidate result"| G
+        G -->|"not accepted"| C
+        C -->|"retry criteria permit"| A
+        G -->|"accepted candidate + evidence"| C
+    end
+
+    X["Constrained effect<br/>executor"]
+    T["Permitted target"]
+
+    C -->|"Pattern: Proposal/execution split<br/>exact accepted candidate"| X
+    X -->|"permitted effect"| T
+```
+
+Read the diagram from left to right:
+
+1. The **bounded convergence loop** uses workflow control to admit the task, record each attempt, and retry or stop according to configured criteria.
+2. The **deterministic acceptance gate** evaluates every candidate result in that loop. A non-accepted result returns to workflow control; an accepted result leaves the loop with recorded evidence.
+3. The **proposal/execution split** prevents the agent from causing the external effect. Workflow control passes only the exact accepted candidate to the constrained executor.
+
 | Pattern | Where it sits | Why it is required here |
 |---|---|---|
 | [Bounded convergence loop](../patterns/bounded-convergence-loop.md) | From task admission through repeated candidate attempts | Gives iteration a finite scope, budget, and safe non-convergence outcomes |
