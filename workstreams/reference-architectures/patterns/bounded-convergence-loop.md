@@ -64,7 +64,7 @@ The key variation is where the workflow persists its loop state and how it obtai
 |---|---|---|---|
 | CI-backed code task | [GitHub Actions workflow runs](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-workflow-runs/viewing-workflow-run-history) | A recorded pass/fail result for configured checks | A task-scope contract, retry/cost limits, isolated execution, and a policy for failures that tests do not explain |
 | Durable workflow runtime | [AWS Step Functions retry and catch](https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html) | Explicit retry and terminal error routing in workflow state | A deterministic acceptance gate, bounded agent tools, idempotent effects, and domain-level attempt evidence |
-| Persistent agent graph | [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence) | Saved execution state across steps and interrupts | Explicit iteration/cost limits, a gate independent of the agent, and safe routing on non-convergence |
+| Persistent agent graph | [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence) | Saved execution state across activities and interrupts | Explicit iteration/cost limits, a gate independent of the agent, and safe routing on non-convergence |
 
 ## Known uses outside agents
 

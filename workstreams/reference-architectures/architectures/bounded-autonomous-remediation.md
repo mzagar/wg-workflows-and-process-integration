@@ -116,9 +116,9 @@ The agent must not:
 - invoke the constrained executor or a stronger external capability directly;
 - reset its own iteration, time, or cost budget.
 
-Workflow-controlled steps admit the task, establish the work area, preserve state, evaluate the gate, enforce scope/budget, invoke the constrained effect executor, reconcile uncertain effects, and record escalation or completion.
+Workflow-controlled activities admit the task, establish the work area, preserve state, evaluate the gate, enforce scope/budget, invoke the constrained effect executor, reconcile uncertain effects, and record escalation or completion.
 
-## Choosing deterministic and model-driven steps
+## Choosing deterministic and model-driven activities
 
 Use deterministic workflow control for admission, duplicate detection, scope enforcement, work-area creation, budget tracking, acceptance checks, policy validation, effect execution/reconciliation, and terminal-state recording.
 
