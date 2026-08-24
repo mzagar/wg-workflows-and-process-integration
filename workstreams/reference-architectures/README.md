@@ -43,7 +43,7 @@ A reference architecture should act as a routing checklist: a practitioner
 brings a use case and determines whether the architecture fits, whether a
 nearby variant fits, or whether an individual pattern is sufficient.
 
-Include guidance for choosing deterministic and model-driven steps: identify
+Include guidance for choosing deterministic and model-driven activities: identify
 where conventional workflow logic provides predictable, testable behavior and
 where open-ended reasoning benefits from an LLM.
 

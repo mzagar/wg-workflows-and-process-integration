@@ -79,7 +79,7 @@ What the agent is allowed to do; what capabilities and guarantees must remain
 under workflow control. Name any protected effects the agent must be unable to
 cause directly.
 
-## Choosing deterministic and model-driven steps
+## Choosing deterministic and model-driven activities
 
 Identify where deterministic or rule-based implementation provides required
 guarantees, and where the input is open-ended enough to warrant model
@@ -101,9 +101,9 @@ here falsifies the architecture just as surely as a missing component.
 Sourced from (or sharpened from, with a pointer to) the Use Cases WS. A
 story with real systems and stakes, not an abstract flow. Include:
 
-- the numbered steps, each naming the components it touches
+- the numbered activities, each naming the components they touch
 - the run-over-time lifecycle view (where durability lives)
-- the "if the process dies during step N" table
+- the "if the process dies during activity N" table
 
 ## Composition considerations
 

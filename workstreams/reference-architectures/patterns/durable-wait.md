@@ -40,12 +40,12 @@ entry.
 The essential move is turning a *physical* wait (a blocked thread or
 process) into a *logical* one (a recorded fact: run X is parked, awaiting
 event Y). Durable *state* is an ingredient, not the pattern: a system can
-persist its state after every step and still lose every pending wait on
+persist its state after every activity and still lose every pending wait on
 deploy, if the waiting itself lives in process memory.
 
 Resume must restore three things, not just liveness:
 
-- **Position** — which step the run was parked at
+- **Position** — which activity the run was parked at
 - **Context** — the inputs and intermediate results the continuation
   depends on
 - **Identity** — which real-world request this is: the correlation that

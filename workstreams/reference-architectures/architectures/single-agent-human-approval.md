@@ -53,7 +53,7 @@ Bring a use case, walk the questions:
    by different teams. No multi-agent architecture is currently defined.
    "The task is big" is not a signal — capacity is an implementation concern,
    and it shifts with every model generation.
-2. **Can any step cause a protected effect that needs human sign-off?** If yes,
+2. **Can any activity cause a protected effect that needs human sign-off?** If yes,
    and approve/reject (with optional feedback) is the interaction you need —
    this is your architecture; keep going. If the human's role is richer than
    a gate (co-editing the draft, steering the agent mid-task, supervising as
@@ -66,13 +66,13 @@ Bring a use case, walk the questions:
    (humans answer in hours, not milliseconds) — which is why the
    [durable wait](../patterns/durable-wait.md) is a required pattern here,
    not an option.
-4. **Can you separate the steps that must carry guarantees or attribution
-   from the steps that are open-ended?** Steps with guarantee requirements —
+4. **Can you separate the activities that must carry guarantees or attribution
+   from the activities that are open-ended?** Activities with guarantee requirements —
    validated inputs, the attributed decision, the idempotent execution of
    the approved action — belong outside the agent boundary as
-   workflow-controlled steps, where guarantees can actually be enforced. The
+   workflow-controlled activities, where guarantees can actually be enforced. The
    open-ended
-   steps (interpreting the request, drafting the proposal) are what the
+   activities (interpreting the request, drafting the proposal) are what the
    agent is for. If you can't yet draw that line, draw it before choosing
    any architecture — the agent and protected-effect boundary in *Structure*
    is that line, drawn for this job.
@@ -104,7 +104,7 @@ implementation choices inside the boundary.
 
 ```mermaid
 flowchart TB
-    E["Execution engine<br/>step ordering · retries · timers · waits"]
+    E["Execution engine<br/>activity ordering · retries · timers · waits"]
 
     subgraph AB["Agent boundary"]
         A["Agent<br/>internal loop unspecified"]
@@ -149,17 +149,17 @@ of how real runtimes handle these boundaries.
 | Agent ⇄ tool / capability access layer | Tool call; result or error | Tools may support investigation and proposal construction but cannot expose the capability or credentials that cause the protected effect |
 | Engine ⇄ workflow-controlled executor | Approved proposal in; execution outcome out | Only the exact approved proposal may reach the protected target; retries are idempotent |
 | Engine → state store | Run record (state + position, fully resumable) | While parked, the record *is* the run |
-| All → audit log | Event record (run id, step, outcome) | One run identity joins intent, decision, and effect |
+| All → audit log | Event record (run id, activity, outcome) | One run identity joins intent, decision, and effect |
 
 The required capabilities and their responsibilities:
 
 | Capability | Responsibility in this architecture | Charter basis |
 |---|---|---|
-| Execution engine / orchestrator | Owns step ordering, retries, timers, and waits; invokes the agent as one step among others | 3A |
-| Agent | Performs the reasoning-heavy step(s); internals unspecified | 3A |
+| Execution engine / orchestrator | Owns activity ordering, retries, timers, and waits; invokes the agent as one activity among others | 3A |
+| Agent | Performs the reasoning-heavy activity or activities; internals unspecified | 3A |
 | Tool / capability access layer | Supports investigation and proposal construction without exposing the protected-effect capability | 3C |
 | State / context store | Persists workflow state so runs can pause and resume | 3B |
-| Audit log / system of record | Records execution history, step outcomes, decision points — distinct from Observability WG's traces/metrics | 3B |
+| Audit log / system of record | Records execution history, activity outcomes, decision points — distinct from Observability WG's traces/metrics | 3B |
 | Human interaction surface | Presents pending approvals; captures approve/reject/escalate | 3D |
 | Workflow-controlled executor | Validates and executes the exact approved proposal using capabilities unavailable to the agent | 3A, 3F |
 
@@ -180,7 +180,7 @@ composition and why it is required:
 | [Proposal/execution split](../patterns/proposal-execution-split.md) | Between the agent's proposal and the protected effect | Probabilistic intent must not directly cause the governed effect; authorization must bind to exactly what executes |
 | [Human approval gate](../patterns/human-approval-gate.md) | At the authorization decision | The decision must be made by an identified, authorized person and recorded with the proposal they reviewed |
 | [Durable wait](../patterns/durable-wait.md) | At the approval gate | Approvals take hours or days; the run must outlive every process that hosts it |
-| Idempotent executor *(candidate — entry not yet written)* | The execution step | Retries after approval must not repeat the effect |
+| Idempotent executor *(candidate — entry not yet written)* | The execution activity | Retries after approval must not repeat the effect |
 
 **Invalid composition — the one shortcut that breaks everything:** the agent
 can invoke the protected-effect capability directly or obtain the executor's
@@ -208,13 +208,13 @@ What must be handled outside the agent:
 - Validation and final execution of approved actions
 - Audit logging
 
-## Choosing deterministic and model-driven steps
+## Choosing deterministic and model-driven activities
 
-- Side-effecting execution is a rule-based, workflow-controlled step *after*
+- Side-effecting execution is a rule-based, workflow-controlled activity *after*
   the gate, not an agent action. The agent's role ends at the proposal;
   execution belongs to the workflow.
-- Retries around the agent step need idempotency at the workflow level — an
-  agent step re-run is not guaranteed to produce the same output.
+- Retries around the agent activity need idempotency at the workflow level — an
+  agent activity re-run is not guaranteed to produce the same output.
 - Use conventional workflow logic for lookups, transforms, validation, and
   templates when their rules can be stated explicitly. Use model reasoning
   where the input is open-ended and interpretation or judgment is required.
@@ -240,9 +240,9 @@ This walkthrough makes the architecture concrete but is not yet sourced
 validation from the Use Cases workstream: *an agent drafts a customer refund,
 finance approves it, and the ERP executes it.*
 
-1. **Trigger** — a refund request arrives; a deterministic step validates it
+1. **Trigger** — a refund request arrives; a deterministic activity validates it
    and the engine starts a run (audit: run started).
-2. **Agent drafts** — the agent step reads the order history and policy
+2. **Agent drafts** — the agent activity reads the order history and policy
    through the tool access layer and produces a refund proposal — amount,
    justification, target account (audit: proposal + rationale).
 3. **Durable wait** — the engine records the run's state and parks it at the
@@ -276,11 +276,11 @@ trigger → validate → agent drafts → record run    approval event → reloa
 | If the process dies during… | What happens on restart | What makes it safe |
 |---|---|---|
 | 1. Trigger / validate | The trigger redelivers; validation re-runs | Validation is deterministic and side-effect-free |
-| 2. Agent drafts | Engine re-runs the agent step from the last recorded state | Nothing has executed yet; a different draft is acceptable — the gate still stands between draft and effect |
+| 2. Agent drafts | Engine re-runs the agent activity from the last recorded state | Nothing has executed yet; a different draft is acceptable — the gate still stands between draft and effect |
 | 3. Durable wait | Run reloads as parked, still waiting | The record *is* the run; no process memory is involved |
 | 4. Human decides | Decision is recorded before resume; redelivery is deduplicated | Resume is idempotent — the same approval delivered twice executes once |
-| 5. System executes | Execution step retries | Idempotency keys on the side-effecting call: retried, not repeated |
-| 6. Close out | Audit write retries | Audit append is idempotent per run and step |
+| 5. System executes | Execution activity retries | Idempotency keys on the side-effecting call: retried, not repeated |
+| 6. Close out | Audit write retries | Audit append is idempotent per run and activity |
 
 ## Composition considerations
 
@@ -293,7 +293,7 @@ live in the pattern entries:
   Thursday. Either the executor re-validates preconditions before acting, or
   approvals carry an expiry — one of the two, explicitly.
 - **Bounded rejection loops.** Reject-with-feedback re-enters the agent
-  step. Without an iteration cap and an exit to escalation, a strict
+  activity. Without an iteration cap and an exit to escalation, a strict
   reviewer plus a stubborn agent is an infinite loop with an LLM bill.
 - **Proposal supersession.** A revised proposal is an in-run transition, not
   a terminal state. It invalidates any approval attached to the previous
@@ -307,7 +307,7 @@ live in the pattern entries:
 ## Out of scope (handled elsewhere)
 
 - **Traces, metrics, and runtime telemetry** — Observability WG. This
-  architecture's audit log is the system of record (execution history, step
+  architecture's audit log is the system of record (execution history, activity
   outcomes, decision points), which the charter explicitly distinguishes
   from observability signals.
 - **Agent identity, delegation, and authorization** — Identity & Trust WG.

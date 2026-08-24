@@ -7,7 +7,7 @@
 
 ## Problem
 
-An agent step is probabilistic; the enterprise needs enforceable controls at
+An agent activity is probabilistic; the enterprise needs enforceable controls at
 the point of effect. That need arrives in several forms, any one of which is
 sufficient:
 
