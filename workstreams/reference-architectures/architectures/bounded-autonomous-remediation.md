@@ -51,8 +51,6 @@ No variants are currently defined. The following nearby flows are deliberately n
 
 Component-and-relationship level only. The agent’s internal reasoning loop is deliberately unspecified: deterministic, ReAct-style, or other bounded internals are equal implementation choices inside the agent boundary.
 
-> **Diagram legend:** Orange = agent-driven or probabilistic work. Blue = workflow-controlled capabilities and decisions. Gray = external targets or neutral work areas.
-
 ```mermaid
 flowchart TB
     E["Execution engine\nadmit · sequence · retry · stop"]
@@ -84,6 +82,8 @@ flowchart TB
     classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
     classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
 ```
+
+> **Diagram legend:** Orange = agent-driven or probabilistic work. Blue = workflow-controlled capabilities and decisions. Gray = external targets or neutral work areas.
 
 | Capability | Responsibility in this architecture | Charter basis |
 |---|---|---|
