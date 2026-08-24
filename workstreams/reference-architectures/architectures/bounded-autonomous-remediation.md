@@ -118,6 +118,7 @@ flowchart LR
         A -->|"candidate result"| G
         G -->|"not accepted"| C
         C -->|"retry criteria permit"| A
+        C -->|"criteria not met"| S["Stop, escalate,<br/>or fail"]
         G -->|"accepted candidate + evidence"| C
     end
 
@@ -127,7 +128,7 @@ flowchart LR
     C -->|"Pattern: Proposal/execution split<br/>authority boundary; exact accepted candidate"| X
     X -->|"permitted effect"| T
 
-    class C,G,X workflow
+    class C,G,S,X workflow
     class A agent
     class T external
     classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
@@ -208,7 +209,7 @@ A scheduled or triage-labelled task requests a small dependency bump, lint/type 
 flowchart TD
     A["Admit task"] --> W["Create work area"]
     W --> T["Agent attempt"]
-    T --> G["Record candidate and gate evidence"]
+    T --> G["Evaluate candidate and<br/>record gate evidence"]
     G -->|"gate not accepted; retry criteria permit"| T
     G -->|"gate not accepted; stop or escalate"| S["Record attempt, budget, feedback, and terminal outcome"]
     G -->|"gate accepted"| E["Cause constrained effect"]
