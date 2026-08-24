@@ -31,7 +31,7 @@ run explicit checks and validate policy
 record acceptance evidence     return feedback / stop / escalate
 ```
 
-Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Scope may limit the target, permitted change class, data accessed, allowed tools or actions, and permitted effect. Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.
+Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Scope may limit the target (the system, record, repository, or resource affected), permitted change class (the kind of modification allowed), data accessed, allowed tools or actions, and permitted effect (the external outcome that may be applied). Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.
 
 ## Invariants (must hold in any implementation)
 
