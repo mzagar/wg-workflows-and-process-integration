@@ -1,6 +1,6 @@
 # Bounded Autonomous Remediation
 
-**The job it serves:** Resolving one pre-qualified, bounded problem autonomously, with independent acceptance evidence and safe escalation when the work does not converge \
+**The job it serves:** Resolving one bounded problem autonomously, using independent acceptance evidence and safe escalation when the work does not converge \
 **Built from patterns:** [Bounded convergence loop](../patterns/bounded-convergence-loop.md) · [Deterministic acceptance gate](../patterns/deterministic-acceptance-gate.md) · [Proposal/execution split](../patterns/proposal-execution-split.md) \
 **Requires capabilities:** Execution engine · bounded agent/tool environment · isolated or non-authoritative work area · deterministic gate · state/context store · constrained effect executor · audit log · escalation surface \
 **Audience:** Engineers building bounded autonomous workflows · architects reviewing autonomy boundaries · operational owners accountable for the work queue
@@ -11,7 +11,7 @@ Draft for working group review. Nothing here is locked. This architecture is pro
 
 ## Purpose
 
-This architecture serves a recurring practitioner job: resolve one small, pre-qualified problem without requiring a human approval for every attempt, while preserving clear limits on what the agent may do and clear evidence for why the result was accepted.
+This architecture serves a recurring practitioner job: resolve one small, bounded problem without requiring a human approval for every attempt, while preserving clear limits on what the agent may do and clear evidence for why the result was accepted.
 
 Use it when the task has a declared scope, allowed tools, budget, and independently checkable acceptance condition; the permitted effect is constrained and reversible or otherwise low enough impact for policy-authorized execution. Examples can include opening a remediation pull request, creating a corrected draft record, preparing a change request, or producing a reconciled correction batch.
 
