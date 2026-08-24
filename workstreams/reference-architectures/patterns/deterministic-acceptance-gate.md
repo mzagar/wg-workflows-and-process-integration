@@ -21,14 +21,11 @@ The workflow needs a gate based on explicit criteria: tests, contracts, schema c
 
 ## Solution
 
-```text
-candidate result + declared scope
-              │
-              ▼
-run explicit checks and validate policy
-       │ pass + scope-valid       │ fail / insufficient evidence
-       ▼                          ▼
-record acceptance evidence     return gate result to workflow control
+```mermaid
+flowchart TD
+    I["Candidate result + declared scope"] --> G["Run explicit checks and validate policy"]
+    G -->|"accepted and scope-valid"| E["Record acceptance evidence"]
+    G -->|"not accepted or insufficient evidence"| W["Return gate result to workflow control"]
 ```
 
 Evaluate the exact candidate result against declared, deterministic acceptance criteria and scope rules. Scope may limit the target (the system, record, repository, or resource affected), permitted change class (the kind of modification allowed), data accessed, allowed tools or actions, and permitted effect (the external outcome that may be applied). Record the evidence with the candidate identity. Only a result that both passes the checks and remains within the task's allowed scope may advance to the next workflow activity.

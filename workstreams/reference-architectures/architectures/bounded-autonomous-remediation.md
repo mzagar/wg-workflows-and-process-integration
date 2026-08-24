@@ -51,6 +51,8 @@ No variants are currently defined. The following nearby flows are deliberately n
 
 Component-and-relationship level only. The agent’s internal reasoning loop is deliberately unspecified: deterministic, ReAct-style, or other bounded internals are equal implementation choices inside the agent boundary.
 
+> **Diagram legend:** Orange = agent-driven or probabilistic work. Blue = workflow-controlled capabilities and decisions. Gray = external targets or neutral work areas.
+
 ```mermaid
 flowchart TB
     E["Execution engine\nadmit · sequence · retry · stop"]
@@ -74,6 +76,13 @@ flowchart TB
     E -->|out of scope / budget / repeated failure| H
     E -->|resumable run state| S
     E -->|attempts, evidence, effect, outcome| R
+
+    class E,G,X,H,S,R workflow
+    class A agent
+    class W,T external
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
 ```
 
 | Capability | Responsibility in this architecture | Charter basis |
@@ -117,6 +126,13 @@ flowchart LR
 
     C -->|"Pattern: Proposal/execution split<br/>authority boundary; exact accepted candidate"| X
     X -->|"permitted effect"| T
+
+    class C,G,X workflow
+    class A agent
+    class T external
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
 ```
 
 Read the diagram from left to right:
@@ -188,15 +204,20 @@ A scheduled or triage-labelled task requests a small dependency bump, lint/type 
 
 ### The run over time — where bounded recovery lives
 
-```text
-admit task → create work area → agent attempt → record candidate and gate evidence
-                                              │
-                         ┌────────────────────┴────────────────────┐
-                         ▼                                         ▼
-                gate fails: retry if bounded              gate accepts: constrained effect
-                         │                                         │
-                 state records attempt,                    record confirmation
-                 budget, and feedback                      and terminal outcome
+```mermaid
+flowchart TD
+    A["Admit task"] --> W["Create work area"]
+    W --> T["Agent attempt"]
+    T --> G["Record candidate and gate evidence"]
+    G -->|"gate not accepted; retry criteria permit"| T
+    G -->|"gate not accepted; stop or escalate"| S["Record attempt, budget, feedback, and terminal outcome"]
+    G -->|"gate accepted"| E["Cause constrained effect"]
+    E --> R["Record effect confirmation and terminal outcome"]
+
+    class A,W,G,S,E,R workflow
+    class T agent
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
 ```
 
 ### If the process dies mid-run

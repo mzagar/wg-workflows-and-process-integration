@@ -11,6 +11,8 @@ Some bounded tasks cannot be completed in one attempt. An agent may need to diag
 
 The workflow needs the benefit of iteration without granting an agent an open-ended objective, unlimited retries, or authority to declare its own result acceptable.
 
+> **Diagram legend:** Orange = agent-driven or probabilistic work. Blue = workflow-controlled capabilities and decisions.
+
 ## Why this is hard
 
 - An agent can keep trying without making progress, consuming cost and time.
@@ -21,19 +23,19 @@ The workflow needs the benefit of iteration without granting an agent an open-en
 
 ## Solution
 
-```text
-admit bounded task
-        │
-        ▼
-agent attempts permitted work
-        │
-        ▼
-deterministic gate evaluates result
-   │ pass                 │ fail
-   ▼                      ▼
-exit to controlled effect  retry only while configured criteria permit
-                           │
-                           └── otherwise: escalate / stop / fail
+```mermaid
+flowchart TD
+    A["Admit bounded task"] --> B["Agent attempts permitted work"]
+    B --> G["Deterministic gate evaluates result"]
+    G -->|"accepted"| E["Exit to controlled effect"]
+    G -->|"not accepted"| C{"Configured retry criteria permit?"}
+    C -->|"yes"| B
+    C -->|"no"| S["Escalate, stop, or fail"]
+
+    class B agent
+    class A,G,C,E,S workflow
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
 ```
 
 The workflow admits one explicitly bounded task, gives the agent only the tools and scope needed for that task, and evaluates every attempt against a deterministic gate. The gate—not the agent—decides whether the loop has converged. A retry is allowed only while configured retry criteria permit, including scope and declared iteration, time, and cost limits.
