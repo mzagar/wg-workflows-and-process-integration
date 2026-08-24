@@ -95,7 +95,7 @@ The patterns have different roles in this architecture:
 
 - The **bounded convergence loop** controls task admission, repeated attempts, and retry or stop decisions.
 - The **deterministic acceptance gate** is used inside that loop to evaluate every candidate result.
-- The **proposal/execution split** is an authority boundary: the agent may propose a candidate, but only workflow control may pass an accepted candidate to the constrained executor.
+- The **proposal/execution split** is an authority boundary: the agent may produce a candidate result as its proposal, but only workflow control may pass the accepted candidate to the constrained executor.
 
 ```mermaid
 flowchart LR
