@@ -8,13 +8,13 @@ This document defines the core vocabulary for agentic AI workflow concepts used 
 
 ## Foundational Concepts
 
+### Activity
+
+A single, bounded task with defined inputs and outputs that can be tracked to completion.
+
 ### Workflow
 
-A structured definition of work composed of one or more Steps, their relationships, and the logic required to achieve a defined goal or outcome.
-
-### Workflow Step / Workflow Task
-
-The atomic unit of work within a Workflow — a single, bounded task with defined inputs and outputs that the Workflow orchestrates and tracks to completion.
+The primary unit of structured, multi-activity work with a defined goal and outcome. A Workflow is composed of one or more Activities, their relationships, and the logic required to achieve that goal or outcome.
 
 ### Workflow Execution
 
@@ -26,7 +26,7 @@ The information representing the current condition of a Workflow Execution at a 
 
 ### Workflow Context
 
-The shared information available to Workflow participants during execution that informs decision-making and execution across Steps and Workflow boundaries. Workflow Context may include inputs, metadata, shared data, execution history, configuration, and references to external resources.
+The shared information available to Workflow participants during execution that informs decision-making and execution across Activities and Workflow boundaries. Workflow Context may include inputs, metadata, shared data, execution history, configuration, and references to external resources.
 
 ---
 
@@ -34,7 +34,7 @@ The shared information available to Workflow participants during execution that 
 
 ### Control Flow
 
-The logic that determines the order, conditions, branching, iteration, parallelism, and synchronization of Step execution within a Workflow.
+The logic that determines the order, conditions, branching, iteration, parallelism, and synchronization of Activity execution within a Workflow.
 
 ### Trigger
 
@@ -58,7 +58,7 @@ The property by which a Workflow produces consistent execution behavior when pro
 
 ### Orchestration
 
-A coordination model in which a Workflow acts as the orchestrator — invoking Steps and participants, managing sequencing, and determining subsequent actions based on execution State and results.
+A coordination model in which a Workflow acts as the orchestrator — invoking Activities and participants, managing sequencing, and determining subsequent actions based on execution State and results.
 
 ### Choreography
 
@@ -66,7 +66,7 @@ A coordination model in which participants coordinate by reacting to Triggers ba
 
 ### Composition
 
-The construction of a Workflow from reusable components, including Workflow Steps/Tasks, sub-workflows, and other composable units. Composition defines how Workflows are organized while preserving the execution boundaries of each composed unit.
+The construction of a Workflow from reusable components, including Activities, sub-workflows, and other composable units. Composition defines how Workflows are organized while preserving the execution boundaries of each composed unit.
 
 ---
 
@@ -82,7 +82,7 @@ Representation of an agent's self-declared capabilities intended for discovery a
 
 ### Human-in-the-Loop
 
-The pattern where a human holds a Role at a defined Step — as approver, reviewer, or decision-maker — before the Workflow continues. Structurally it is a Handoff subtype (agent → human → agent).
+The pattern where a human holds a Role at a defined Activity — as approver, reviewer, or decision-maker — before the Workflow continues. Structurally it is a Handoff subtype (agent → human → agent).
 
 ---
 
