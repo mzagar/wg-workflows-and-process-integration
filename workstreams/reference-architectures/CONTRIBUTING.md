@@ -24,7 +24,9 @@ questions or candidate composition concerns until validation shows they solve an
 independently reusable problem.
 
 For the candidate-selection and scenario-validation process, see the
-[RA candidate selection guide](docs/ra-candidate-selection-guide.md).
+[RA candidate selection guide](docs/ra-candidate-selection-guide.md). To
+validate an existing or proposed RA against one use case, see the
+[RA use-case validation guide](docs/ra-use-case-validation-guide.md).
 
 ## Choose the right contribution type
 

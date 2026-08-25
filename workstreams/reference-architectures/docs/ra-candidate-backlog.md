@@ -54,6 +54,9 @@ characteristics such as approval, fan-out, or escalation.
 | Partial | Some composition fits; additional scope, pattern, or parent composition is needed. |
 | No current RA | No current RA candidate is sufficiently coherent yet. |
 
+To validate a mapped use case against an RA, follow the
+[RA use-case validation guide](ra-use-case-validation-guide.md).
+
 ## Detailed primary cohort mapping
 
 Each use case appears once. In the table, blank cohort and shared-reason cells

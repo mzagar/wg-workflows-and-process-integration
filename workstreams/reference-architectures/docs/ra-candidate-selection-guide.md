@@ -19,6 +19,7 @@ the contribution guide differ, the contribution guide takes precedence.
 - [4. Draft and validate the RA](#4-draft-and-validate-the-ra)
 - [5. Open, review, and re-evaluate](#5-open-review-and-re-evaluate)
 - [Quick checklist](#quick-checklist)
+- [Validate one RA against one use case](#validate-one-ra-against-one-use-case)
 
 ## Related working map
 
@@ -161,6 +162,12 @@ When choosing the next candidate, consider more than cohort size:
 | Distinct guarantees | Does it add boundaries not covered by existing RAs? |
 | Validation readiness | Are contrasting scenarios available? |
 | Reuse | Can it compose current patterns without speculative new ones? |
+
+## Validate one RA against one use case
+
+To validate an existing or proposed RA against one use case and produce a
+small GitHub Issue or PR, follow the
+[RA use-case validation guide](ra-use-case-validation-guide.md).
 
 ## Quick checklist
 
