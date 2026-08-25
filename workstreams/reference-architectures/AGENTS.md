@@ -8,17 +8,12 @@ Before adding or changing a pattern, reference architecture, scenario, decision,
    - [patterns/TEMPLATE.md](patterns/TEMPLATE.md)
    - [architectures/TEMPLATE.md](architectures/TEMPLATE.md)
 
-## Validating an RA against a use case
-
-When asked to validate a reference architecture against a use case, read and follow the [RA use-case validation guide](docs/ra-use-case-validation-guide.md).
-Use only the supplied use-case evidence and produce the guide's short validation format.
-Do not create a GitHub Issue or PR unless the user explicitly asks.
-
 ## Required rules
 
 - A **pattern** solves one independently reusable workflow problem.
 - A **reference architecture** serves a recognizable practitioner job and composes patterns, capability roles, boundaries, guarantees, and exit states.
 - A **scenario** validates an architecture; do not mistake a domain example for the generic architecture name.
+- For RA use-case validation, follow the guide linked from `CONTRIBUTING.md`, use only supplied evidence, and do not create a GitHub Issue or PR unless the user explicitly asks.
 - Reuse existing patterns before proposing a new one.
 - Keep capability descriptions vendor-neutral and at the logical role level.
 - Make the boundary between agent and workflow-controlled work explicit.
