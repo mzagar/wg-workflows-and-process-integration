@@ -8,6 +8,12 @@ Before adding or changing a pattern, reference architecture, scenario, decision,
    - [patterns/TEMPLATE.md](patterns/TEMPLATE.md)
    - [architectures/TEMPLATE.md](architectures/TEMPLATE.md)
 
+## Validating an RA against a use case
+
+When asked to validate a reference architecture against a use case, read and follow the [RA use-case validation guide](docs/ra-use-case-validation-guide.md).
+Use only the supplied use-case evidence and produce the guide's short validation format.
+Do not create a GitHub Issue or PR unless the user explicitly asks.
+
 ## Required rules
 
 - A **pattern** solves one independently reusable workflow problem.
