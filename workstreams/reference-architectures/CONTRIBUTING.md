@@ -14,6 +14,18 @@ Read these in order:
 
 Reuse existing guidance before proposing a new concept. This workstream is a draft: record genuine gaps as open questions rather than silently inventing new terminology or rules.
 
+## Selecting a new reference architecture
+
+Before drafting a new reference architecture, confirm that it serves a
+recognizable practitioner job with boundaries and guarantees not already
+covered by an existing architecture. Prefer validating the candidate against
+contrasting real scenarios when available. Record possible new patterns as open
+questions or candidate composition concerns until validation shows they solve an
+independently reusable problem.
+
+For the candidate-selection and scenario-validation process, see the
+[RA candidate selection guide](docs/ra-candidate-selection-guide.md).
+
 ## Choose the right contribution type
 
 | If you have… | Add or update… | It is for… |
