@@ -1,268 +1,264 @@
 # Parallel Research and Merge
 
-**The job it serves:** Answering one request by researching independent sources at the same time, then merging the findings into one result with a record of where each claim came from and what is missing \
+**The job it serves:** Answer one business task with findings from independent sources. Agents research in parallel. The workflow combines the findings into one result with references to their origin \
 **Built from patterns:** [Parallel fan-out and join](../patterns/parallel-fan-out-and-join.md) · [Branch isolation](../patterns/branch-isolation.md) · [Durable wait](../patterns/durable-wait.md) · [Human approval gate](../patterns/human-approval-gate.md) · [Proposal/execution split](../patterns/proposal-execution-split.md) \
-**Requires capabilities:** Execution engine · two or more agents · tool access layer · merge step · state/context store · audit log · human interaction surface (when a person approves) \
-**Audience:** Engineers and architects building parallel research workflows · reviewers checking the design · people reading or approving the results
+**Requires capabilities:** Execution engine · research agents · tool access layer · merge step · state/context store · audit log · human interaction surface (if a person approves) \
+**Audience:** People who build or examine workflows that divide research between agents
 
 ## Status
 
-Draft for working group review. The 13 decisions in the appendix are fixed for this draft; they are not yet approved WG guidance.
+Draft for working group review. The 13 decisions in the appendix are fixed for this draft, not approved WG guidance.
 
 ## Purpose
 
-This architecture answers a request that needs findings from independent sources: split the research, run the parts at the same time, and merge them into one result. Every claim names the branch it came from, and the result says when a branch is missing. It adds a parallel research job to the existing approval and remediation architectures, exercising parallel execution, failure recovery, tool access, and optional human review (charter 3A–3D and 3F).
+Use this architecture when one request needs research from several independent sources, such as filings, news, and company data. Each agent receives instructions for one source and works independently, like an analyst assigned one part of a report. A plan fixed before work starts sets the limits and identifies which sources are essential. The workflow collects the findings and combines them into one result. Each claim refers to saved findings, so readers can trace its recorded origin. Disagreements stay visible, and missing sources are named. Rules set in advance decide whether a gap permits a partial result or requires the run to stop.
 
-Sources may be separate, speed may matter, or one reader may not hold all the material. Model capacity changes, so the checklist tests independence, not job size or agent count.
+> **Terminology:** Core terms follow the [workflow taxonomy](../../taxonomy/terms.md). 
+> - **branch** is one research part; **brief** gives it instructions and initial context. 
+> - **join** collects branch outcomes; **merge step** combines findings. 
+> - **accepted result** has the required format, not verified content.
+> - **finding reference** points to a saved finding in this run; the **reference check** checks those links and branch labels, not claim truth.
 
-**Reading paths.** For the idea and reasons, read this section and the worked scenario. For fit, read *Is this your architecture?* For implementation guidance, read *Structure* through *Composition considerations*. The appendix records the fixed decisions and their reasons.
-
-### The idea in plain words
-
-Picture a research manager who needs a market report. She writes a brief for each of three analysts, each reading a different source. They work at the same time and do not compare notes. When each has returned or reached a deadline, she combines their findings and marks who found what. A rule set before they started decides whether a missing analyst means a partial report or a stop.
-
-Here, agents are the analysts and the execution engine is the manager.
-
-### Words used here
-
-These explanations use the [workflow taxonomy](../../taxonomy/terms.md); branch, brief, join, and merge step are local terms, not proposed taxonomy additions.
-
-| Word | Meaning |
-|---|---|
-| Business task | The request or problem the workflow handles, as in the existing architectures; not a separate taxonomy entry |
-| Activity | A bounded piece of work with defined inputs and outputs, tracked to completion |
-| Execution engine | The part that runs the workflow's activities and remembers its state |
-| Control flow | The rules for ordering, branching, and waiting for activities |
-| Branch | One parallel piece of work, done by one agent in its own lane |
-| Brief | The instructions and context the engine gives a branch; the branch then reads its allowed source |
-| Plan | The taxonomy's structured guide to execution, restricted here to a branch list fixed before work starts, including each branch's source and required-or-optional status |
-| Join | The activity that collects every branch's terminal state and available findings after deadlines and retries |
-| Merge step | The activity that combines the collected findings into one result |
-| Handoff | An explicit transfer of responsibility, context, state, or authority to another participant or workflow |
-| Protected effect | An action that changes the real world, such as a payment, a message, or a change in a system |
 
 ## Is this your architecture? (checklist)
 
-Bring a use case and follow these questions before designing the workflow.
+All answers are yes: use this architecture; any answer is no: follow the route in the table.
 
-1. **Does the research break into parts that do not need each other's results?** Yes: continue. No: use a sequence of activities, not this parallel composition.
-2. **Do the parts examine different material, such as different sources, systems, or document sets?** Yes: continue. No: use one research activity; reading the same material in the same way does not require this composition.
-3. **Is it known which sources are essential and which may be missing from a useful answer?** Yes: continue; the plan will mark their branches required or optional. No: settle that requirement before choosing this architecture. If every source is essential, all branches are required.
-4. **Will the findings lead to a protected effect?** Yes, with human approval required: this architecture supplies the merged proposal to [Single-Agent Process with Human Approval](single-agent-human-approval.md); that workflow owns authorization and execution. Yes, without human approval: the research may fit, but this architecture does not cover authorization or execution; use a separate effect-controlling composition. No: this architecture fits; continue, with optional human review of the result.
-
-The checklist also helps assess an existing workflow. Check its invariants, exit states, and boundaries below; record any gaps.
+| # | Question | If no, use instead |
+|---|---|---|
+| 1 | Can the research parts run without each other's results? | Run the steps in order. Use one agent for reasoning and code for fixed rules. No general sequential RA is defined here |
+| 2 | Does each part examine different material? | Use one research agent, or code if model reasoning is not needed |
+| 3 | Is it known which sources are essential and which may be missing? | First decide which sources are required and whether a partial answer is acceptable |
+| 4 | Can the research parts work without communication between them? | This job needs agents that communicate. No matching RA is defined here yet |
+| 5 | Is the result only for reading, with any protected action handled separately? | Use [Human Approval](single-agent-human-approval.md) for human-authorized actions, or [Bounded Remediation](bounded-autonomous-remediation.md) for limited repair tasks. Other policy-authorized actions have no RA here yet |
 
 ## Variants
 
-No variants are currently defined. These nearby jobs are not variants:
-
-- **Dependent steps** need an ordinary sequence, not parallel research.
-- **Independent checking of findings** is a different job, not defined here.
-- **Fleet-wide remediation** has branches that change targets. It needs its own effect-controlling composition; see [Bounded autonomous remediation](bounded-autonomous-remediation.md).
-- **Agents choosing at runtime who runs next** do not follow the fixed plan required here.
+None. Agent-to-agent communication, independent checking, and fleet-wide remediation are different jobs. A plan chosen or changed by agents during the run is also outside this architecture.
 
 ## Structure
 
-The diagram shows capability roles and their relationships, not the reasoning inside an agent.
+The engine controls the workflow. Agents research and, when needed, combine findings. Their internal reasoning is not specified.
 
-```text
-                         business task
-                              |
-                    +---------v----------+
-                    |  Execution engine  |  builds the plan and writes
-                    +---+-----+-----+----+  one brief per branch
-                        |     |     |
-                  brief |     |     | brief
-                        v     v     v
-                  +---------+ +---------+ +---------+
-                  | Agent A | | Agent B | | Agent C |  each branch:
-                  | source 1| | source 2| | source 3|  own lane, read-only,
-                  +----+----+ +----+----+ +----+----+  time and cost limit
-                       |           |           |
-                       +-----------+-----------+
-                                   | findings in the agreed shape
-                                   | (or a recorded failure)
-                    +--------------v--------------+
-                    |  Execution engine: JOIN     |  every branch terminal;
-                    +--------------+--------------+  apply the plan's rule
-                                   | findings + state of every branch
-                            +------v------+
-                            | Merge step  |  one result, every claim
-                            +------+------+  labeled with its branch
-                                   | merged result (complete or partial)
-                    +--------------v--------------+
-                    |  Execution engine: CHECK    |  unlabeled claims removed
-                    +--------------+--------------+
-                                   | checked result
-                                   v
-                      released, or sent to a person
-                      (optional human gate; any protected effect
-                       belongs to another architecture)
+```mermaid
+flowchart TB
+    task([Business task]) --> plan["Engine: fixed plan<br/>one brief per branch"]
+    plan -- brief --> a("Agent A<br/>source 1")
+    plan -- brief --> b("Agent B<br/>source 2")
+    plan -- brief --> c("Agent C<br/>source 3")
+    a & b & c -- "result or recorded failure" --> join["Engine: join<br/>apply the plan's rule"]
+    join -- "findings and every branch status" --> merge("Merge step<br/>claims with labels and references")
+    merge -- draft --> check["Engine: reference check"]
+    check --> review{Report review required?}
+    review -- no --> release["Engine: release result"]
+    review -- yes --> person([Person reviews exact version])
+    person -- approved --> release
+    person -- "rejected or no decision by deadline" --> stop([Record rejection, expiry, or handoff])
+    release --> read([Result to read])
 
-        Workflow state is saved so a run can resume.
-        Audit records share one run id, with an id for each branch.
+    class plan,join,check,review,release workflow
+    class a,b,c,merge agent
+    class task,person,stop,read external
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
 ```
 
-| Capability | Responsibility in this architecture | Charter basis |
-|---|---|---|
-| Execution engine / orchestrator | Builds the plan, starts branches, enforces limits, runs the join and label check, and resumes after restart | 3A, 3B |
-| Branch agents | Each researches one source and returns findings in the agreed shape; internals unspecified | 3A, 3C |
-| Tool / capability access layer | Gives each branch read-only access to its own source and private draft storage, not protected-effect tools | 3C |
-| Merge step | Combines findings into one labeled result; rules or an agent, depending on whether judgment is needed | 3A |
-| State / context store | Keeps the plan, branch states and findings, retries, and consumed budgets across restart | 3B |
-| Audit log / system of record | Records the plan, branch outcomes, merge, check, and decisions under one run id | 3B |
-| Human interaction surface | When a person approves, shows the exact result, labels, and completeness status and captures the attributed decision | 3D |
+> **Legend:** blue = workflow control; orange = agent work; gray = a person, input, or outcome. A rule-based merge uses workflow control instead of an agent. Failure and cancellation paths are listed in Exit states.
 
-The codes refer to [charter scope 3A–3F](../../../charter/charter.md#3-scope). These are logical roles, not separate required services. A platform may combine them while enforcing their boundaries.
+| Capability | Responsibility | Charter basis |
+|---|---|---|
+| Execution engine | Builds the plan, starts and stops branches, applies limits, joins results, checks references, and resumes runs | 3A, 3B |
+| Research agents | Research their assigned sources | 3A, 3C |
+| Tool access layer | Permits source reads and private drafts, not protected effects | 3C |
+| Merge step | Combines findings by rules or model reasoning | 3A |
+| State/context store | Saves the plan, results, attempts, budgets, and waiting position | 3B |
+| Audit log | Records branch outcomes, checks, decisions, and release under one run id | 3B |
+| Human interaction surface | Shows the exact result and records the authorized reviewer's decision | 3D |
+
+These are roles, not separate required services. Codes refer to [charter scope 3A–3F](../../../charter/charter.md#3-scope).
 
 ## Pattern composition
 
-These patterns supply the controls used at each boundary.
+Two patterns control parallel work. Durable wait preserves progress. The approval patterns apply only when needed.
+
+```mermaid
+flowchart TB
+    subgraph FJ[Parallel fan-out and join]
+        plan[Fixed plan] --> branches("Isolated research branches")
+        branches --> join[Join all branch outcomes]
+    end
+    join --> merge("Merge findings") --> check[Reference check]
+    check --> review{Report review required?}
+    review -- no --> release[Release result]
+    review -- yes --> gate[Human approval gate]
+    gate -- approved --> release
+    wait[(Durable wait)] -.- FJ
+    wait -.- gate
+    release -. "if a protected action follows" .-> other["Separate workflow:<br/>proposal, authorization, execution"]
+    class plan,join,check,review,release,gate,wait workflow
+    class branches,merge agent
+    class other external
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
+```
 
 | Pattern | Where it sits | Why it is required here |
 |---|---|---|
-| [Parallel fan-out and join](../patterns/parallel-fan-out-and-join.md) | From the plan to the merge | A fixed plan and bounded join prevent a slow branch hanging the run or a missing branch going unnoticed |
-| [Branch isolation](../patterns/branch-isolation.md) | Around each branch | Keeps research independent and unable to cause protected effects |
-| [Durable wait](../patterns/durable-wait.md) | While waiting for branches and at any human gate | Saved wait position, context, identity, and deadlines survive restart |
-| [Human approval gate](../patterns/human-approval-gate.md), when a person approves | After the merge and label check | The identified, authorized approver decides on the exact immutable result, including its completeness status |
-| [Proposal/execution split](../patterns/proposal-execution-split.md), when an action follows | At the handoff to the effect-controlling workflow | The merged result is proposal data; only that workflow's executor acts after authorization |
+| [Parallel fan-out and join](../patterns/parallel-fan-out-and-join.md) | Plan through join | Fixes branches and failure rules; bounds waiting and identifies missing results |
+| [Branch isolation](../patterns/branch-isolation.md) | Around each branch | Prevents direct cross-branch access and protected effects |
+| [Durable wait](../patterns/durable-wait.md) | Branch waits and any human gate | Keeps position, context, identity, and deadlines across restart |
+| [Human approval gate](../patterns/human-approval-gate.md), if review is required | After the reference check | Binds an explicit decision to the exact result, complete or partial |
+| [Proposal/execution split](../patterns/proposal-execution-split.md), if an action follows | In the separate action workflow | Keeps the report as data; that workflow authorizes and performs the action |
 
-**Invalid compositions.** These shortcuts remove a required guarantee:
-
-- A branch has a tool or credential that can cause a protected effect.
-- Branches can read each other's work or message each other.
-- The join has no deadline or silently skips a missing branch.
-- The plan changes during the run, for example when a branch starts more branches.
+**Invalid compositions:** protected-effect tools in a branch; cross-branch messages or notes; an unlimited wait; a hidden missing branch; a plan changed during the run.
 
 ## The agent and workflow-control boundary
 
-Branch agents may read their allowed source, reason about it, write private drafts, and return findings in the agreed shape or report failure. A merge agent may combine supplied findings, show disagreements, and label every claim. It receives no protected-effect capability.
+Research agents read their source, write private drafts, and return findings or failure.  
+A merge agent combines the supplied findings.  
+No agent can cause a protected effect.  
+The engine owns the plan, limits, attempts, saved state, checks, review, release, and records. 
 
-Workflow control owns the plan, branch count, briefs, limits, scheduling, stopping, retries, join rule, label check, saved state, human gate, handoff, and audit records. No agent can cause a protected effect. If one follows the result, a separate effect-controlling workflow owns authorization and execution.
+The engine saves accepted findings with stable run, branch, and finding identifiers.  
+Each claim must have a finding reference and labels for its referenced branches.  
+For example: branch `News`, finding `News-17`.
+
+The reference check verifies that every reference points to an accepted finding in this run and matches its branch label.  
+It removes claims with missing or invalid references or labels and records each removal.  
+It does not prove that the finding supports the claim, or that either is true.
 
 ## Choosing deterministic and model-driven activities
 
-Use deterministic activities for the guarantees: building the plan from a task template, enforcing limits and retries, joining terminal branch states, checking completeness and labels, marking partial results, and recording outcomes. Here, deterministic means consistent behavior for the same inputs, state, and history, as in the taxonomy. Predictability, testability, and enforceability matter, not cost alone.
+Use rules for plans, limits, retries, joins, format and reference checks, review handling, and records.  
+These activities need consistent, testable behavior.  
+Cost alone is not the reason.
 
-Use model reasoning for open-ended research and a merge that needs judgment. Use rules when the merge only collects, sorts, or ranks by stated criteria. A model does not choose the split, branch count, or next activity.
+Use model reasoning for open-ended research.  
+Use model for the merge only when combining findings needs judgment.  
+A model never chooses the branch count, split, or next activity.
 
 ## Exit states
 
-Every run ends in a recorded state; pending research or approval is not an exit.
+Result coverage is complete or partial before release. The final states below also say how the run ended. A person can reject either result. Pending review is not an exit.
 
 | Exit state | Reached when | Recorded as |
 |---|---|---|
-| Completed | Every planned branch succeeded and the checked result was released, after approval if required | Plan, branch results, merge, label check, decision if any, release |
-| Partial | Every required branch succeeded, at least one optional branch failed or was skipped, and the checked result was released with that gap stated, after approval if required | The same records, plus missing branches and reasons |
-| Failed | A required branch failed after one retry, required work exhausted its budget, or planning, merge, check, storage, or release could not complete within the run's limits | Failure class, every branch's state, consumed budget, last saved state |
-| Escalated | Responsibility was handed to a person or another workflow instead of releasing a result | Handoff target, reason, and state at handoff |
-| Rejected | A person explicitly declined the result at the gate | Decision, authorized approver identity, time, exact version reviewed |
-| Expired | No decision arrived by the gate deadline and no escalation continued the run | Timeout and escalation trail |
-| Cancelled | An authorized requester or operator stopped the run before release | Who, why, and each branch's state |
+| Completed | All branches have accepted results, and the checked result is released after any required approval | Plan, branch results, merge, check, decision if any, release |
+| Partial | All required branches have accepted results; an optional result is missing; the checked result is released with the gap stated, after any required approval | The same records, plus missing branches and reasons |
+| Failed | A required branch fails after one retry; the run reaches its limit; or planning, storage, merge, check, or release cannot finish within those limits | Failed activity, reason, branch states, attempts, budget, saved state |
+| Rejected | A reviewer explicitly rejects the result | Reviewer identity, time, exact version, decision |
+| Expired | The review deadline passes without a decision or continuing escalation | Deadline and escalation history |
+| Escalated | Responsibility moves to a person or another workflow instead of releasing the result | Target, reason, and saved state |
+| Cancelled | An authorized requester or operator stops the run before release | Who, why, and saved state |
 
 ## Worked scenario: a market landscape report
 
-This example sharpens the inventory's [Market landscape report](../../critical-use-cases/use-case-inventory.md#research--intel). Its stated risk is outdated competitive data feeding a strategic decision. The inventory also includes critique before writing; that extra stage is not covered here. The branch plan, failure, retry, and recovery below illustrate this architecture, not a verified deployment.
+A strategy team needs a report. The [inventory](../../critical-use-cases/use-case-inventory.md#research--intel) identifies the risk of outdated market data. It also includes critique before writing, which is outside this example. The plan, failure, and recovery below illustrate the architecture, not a verified deployment.
 
-1. **Admit and plan** *(execution engine, state store).* A strategy team requests a market report. A task template produces three briefs: regulatory filings (required), news and web (required), and company data (optional). The engine saves the plan and limits before starting work.
-2. **Start branches** *(engine, agents, tool access layer).* Three agents start together with separate briefs, private workspaces, source-scoped read tools, and time and cost limits.
-3. **Research** *(agents, tool access layer).* Each returns findings in the agreed shape, including sources and retrieval dates. The engine saves each completed result.
-4. **Join** *(engine, state store).* Branches reach a successful or failed terminal state within their limits. Company data fails, is retried once within the saved budgets, and fails again. It is optional, so the engine permits a partial result.
-5. **Merge** *(merge agent).* The agent combines the saved findings. Every claim names its branch. Disagreements between filings and news appear side by side.
-6. **Label check** *(engine).* A rule removes unlabeled claims and records the removals. The result says: "Partial: company data missing." This check does not verify the truth of labels or claims.
-7. **Human approval** *(human interaction surface, engine).* An identified, authorized analyst sees and approves or rejects that exact immutable version. The decision is recorded before the run resumes; silence never means approval.
-8. **Release and record** *(engine, audit log).* The approved partial report is released once per run. The record joins the plan, branch outcomes, merge, check, decision, and release. Any later protected effect belongs to another workflow.
+1. **Plan** *(engine, state store).* Filings and news are required. Company data is optional. The engine saves the briefs, limits, and one-retry default before dispatch.
+2. **Research** *(agents, tool access layer, state store).* Three read-only branches work in parallel. Each accepted finding has a source, retrieval date, and stable identifier. The engine saves results before marking branches done.
+3. **Join** *(engine).* Company data fails twice. All branches now have a final status. The plan permits a partial result because only an optional branch is missing.
+4. **Merge** *(merge agent).* Each claim gets branch labels and finding references. Two conflicting market-size estimates appear side by side.
+5. **Check** *(engine).* Invalid references or missing labels cause claim removal, recorded in the audit log. A banner says "Partial: company data missing."
+6. **Approve and release** *(person, engine, audit log).* An identified, authorized analyst approves that exact version. The engine saves the decision before release. The release is recorded once per run. Any later protected action belongs to another workflow.
 
 ### The run over time: where durability lives
 
-Saved progress survives process death; finished branches are not repeated.
+The engine saves progress before moving on. A saved waiting record, not a surviving worker, keeps the review pending.
 
-```text
- process lifetime 1           process lifetime 2             process lifetime 3
-|-----------------------|    |----------------------------|  |--------------------|
- plan -> start branches       reload run; keep saved         decision arrives;
- filings done (saved)         filings; recover unfinished    reload run; record
- news still running           branches within saved budgets  decision; release;
-                              -> join -> merge -> check      record partial exit
-   [process dies]             -> PARKED at the gate
-                                    (hours or days pass)
+```mermaid
+flowchart TD
+    plan[1. Plan] --> savedPlan[(Save plan and budgets)]
+    savedPlan --> research("2. Parallel research")
+    research --> savedResults[(Save each accepted result)]
+    savedResults --> join[3. Join] --> merge("4. Merge") --> check[5. Check]
+    check --> savedDraft[(Save exact checked version)]
+    savedDraft --> wait{{Wait for review or deadline}}
+    wait --> person([6a. Person decides]) --> savedDecision[(Save decision before resume)]
+    savedDecision -- approved --> release[6b. Release] --> recorded[(Record release)]
+    savedDecision -- rejected --> rejected([Record rejection])
+    wait -- deadline --> timeout([Record expiry or handoff])
+    restart([Restart during research]) -. "reuse saved results and budgets" .-> savedResults
+    restartWait([Restart during review]) -. "restore version and deadline" .-> savedDraft
+    class plan,savedPlan,savedResults,join,check,savedDraft,wait,savedDecision,release,recorded workflow
+    class research,merge agent
+    class person,rejected,timeout,restart,restartWait external
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
+    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
 ```
 
 ### If the process dies during activity N
 
-Recovery uses recorded state and never resets the plan, retry count, or budget.
+Recovery keeps the same plan, retry count, and consumed budget. Repeated reads can cost money or see newer data.
 
-| If the process dies during... | What happens on restart | What makes it safe |
+| Activity | Recovery | Required control |
 |---|---|---|
-| 1. Admit and plan | Redeliver the request and reload or rebuild the plan | Stable request identity; save the plan before dispatch |
-| 2. Start branches | Reconcile dispatch state before starting unfinished branches | Stable branch ids and deduplicated dispatch; no second active copy |
-| 3. Research | Keep durably saved results; recover unfinished work from its brief | No protected effects; duplicate reads can still cost money or see newer data, so attempts and budgets remain recorded |
-| 4. Join | Reload terminal states and reapply the plan's rule | Saved rule, deadlines, retry counts, and outcomes |
-| 5. Merge | Rerun from saved findings if no completed merge was saved | No protected effect; a different draft is acceptable before review |
-| 6. Label check | Reapply the same rule to the saved draft | Repeatable check; record removals with the draft version |
-| 7. Human approval | Reload the parked run and its exact review version | Saved wait, deadline, and decision; duplicate or late events cannot release twice |
-| 8. Release and record | Reconcile release, then retry unfinished recording | Release and audit append are idempotent per run and activity |
+| 1. Plan and dispatch | Reload the plan; reconcile which branches started | Stable request/branch ids and dispatch deduplication |
+| 2. Research | Keep saved results; recover only unfinished branches | Durable results, attempt records, and unchanged budgets |
+| 3. Join | Reapply the saved rule to branch states | Saved outcomes, deadlines, and retry count |
+| 4. Merge | Use a saved completed draft or rerun from saved findings | Stable finding identifiers; no protected effect |
+| 5. Check | Reapply the rule to the saved draft | Same finding set and version-linked removal records |
+| 6. Review and release | Restore the exact review version and deadline; reconcile release before retry | Record decision before resume; deduplicate decisions and release |
 
 ## Composition considerations
 
-Combining the patterns creates these concerns beyond any one pattern.
-
-- **The join sees everything.** The join and merge receive all findings. Handle their output as sensitively as the most sensitive branch.
-- **Labels are not proof.** A label records claimed origin; the check proves its presence, not that the branch supplied or supported the claim.
-- **Partial approval binds to a version.** An approver sees the missing-branch banner and approves exactly that version. Edits require a new approval.
-- **Branch limits are not a run limit.** Include research, retries, merge, and review handling in the overall budget.
-- **Late findings cannot change an approved result.** Record and ignore them after the join.
+- **Sensitivity:** protect the merged result as carefully as the most sensitive branch.
+- **References:** a checked reference proves a link exists, not that the finding supports the claim.
+- **Hostile content:** isolation does not stop hostile findings reaching the merge. They remain untrusted input; the merge has no protected-effect tools.
+- **Approval:** approve the exact version, including any missing-source banner. Edits need new approval. Report approval does not authorize a later action.
+- **Total limits:** branch limits do not cover the whole run. Include retries and merge in the run budget.
+- **Late results:** record and ignore them after the join. Never change a released result silently.
 
 ## Out of scope (handled elsewhere)
 
-This architecture leaves these jobs and controls to other compositions or workstreams.
-
-- **Model-chosen splits or agents choosing who runs next.** The plan here is fixed.
-- **Independent checking of merged findings.** A separate job, not defined here.
-- **Coordination across teams or companies.** Not defined here.
-- **Identity, credential issuance, and delegation.** Identity & Trust WG; source-scoped access is a requirement here, not an identity standard.
-- **Hostile source content and data-exfiltration controls.** Security WG; isolation limits cross-branch exposure but does not make findings safe to trust at the merge.
-- **Finding quality.** Accuracy & Reliability WG.
-- **Traces, metrics, and telemetry.** Observability WG; the audit log here is a system of record.
+- Independent checking, agent-chosen routing, and coordination across teams or companies: different jobs.
+- Fleet-wide remediation: effectful branches need their own composition; see [Bounded autonomous remediation](bounded-autonomous-remediation.md).
+- Credential issuance and delegation: Identity & Trust WG.
+- Hostile-content and data-exfiltration defenses: Security WG.
+- Finding quality: Accuracy & Reliability WG.
+- Traces, metrics, and telemetry: Observability WG. The audit log here is a system of record.
 
 ## Validation record
 
-This is a first-pass fit assessment against the [inventory](../../critical-use-cases/use-case-inventory.md), using its [12-column schema](../../critical-use-cases/schema-agentic-use-cases.md), not verified implementation conformance. `Validated` means architectural fit, as in the [validation guide](../docs/ra-use-case-validation-guide.md); the Use Cases workstream should confirm these assessments. `Partial fit` retains the draft's limited-coverage label, not the guide's narrower formal `Partial` result. No label has been upgraded.
+These are initial fit assessments from the [inventory](../../critical-use-cases/use-case-inventory.md) and its [schema](../../critical-use-cases/schema-agentic-use-cases.md), not tested implementations. The Use Cases workstream should confirm them. `Validated` means architectural fit under the [validation guide](../docs/ra-use-case-validation-guide.md). `Partial fit` describes limited coverage here, not the guide's formal `Partial` result.
 
 | Scenario | Source | Result | Notes |
 |---|---|---|---|
-| Supplier bid evaluation | [Inventory, Supply chain](../../critical-use-cases/use-case-inventory.md#supply-chain) | Validated | The inventory describes independent bids scored concurrently and merged, with an approval gate. It calls this the natural design; one branch per bid and the pre-run branch count are not established |
-| Architecture decision record (ADR) drafting | [Inventory, SDLC](../../critical-use-cases/use-case-inventory.md#sdlc) | Validated | Earlier-record retrieval and options generation run in parallel; a writer combines both into a draft for team review, with a content approval gate |
-| Bug triage from logs | [Inventory, Engineering](../../critical-use-cases/use-case-inventory.md#engineering) | Candidate | Parallel log analysis and code search feed a synthesis agent. The workflow files a Jira ticket, but who writes it and whether writing is separated from research are unknown |
-| Cross-brand product recommendation | [Inventory, Marketing](../../critical-use-cases/use-case-inventory.md#marketing) | Validated | Separate catalog agents feed synthesis and ranking, with fixed coordination and no mandatory human gate. Instant agent execution does not establish restart behavior |
-| Market landscape report | [Inventory, Research & intel](../../critical-use-cases/use-case-inventory.md#research--intel) | Partial fit | Parallel research and synthesis with content approval fit. Critique before writing is an additional stage not covered here; its independence is not established |
-| Case law research brief | [Inventory, Legal](../../critical-use-cases/use-case-inventory.md#legal) | Partial fit | Parallel searches feed relevance synthesis, then citation checking and sign-off. The additional citation-checking stage is not covered here; its independence is not established |
-| Content repurposing pipeline | [Inventory, Marketing](../../critical-use-cases/use-case-inventory.md#marketing) | Partial fit | Parallel outputs from the same blog post meet at a review queue. Only the parallel pattern fits; this is content generation, not independent-source research and evidence merging |
-| Closed-loop dependency & CVE remediation (fleet-wide) | [Inventory, SDLC](../../critical-use-cases/use-case-inventory.md#sdlc) | No fit | Repository branches write and test fixes and open PRs in convergence loops, conflicting with the read-only research boundary |
-| Service deployment orchestration | [Inventory, Platform engineering](../../critical-use-cases/use-case-inventory.md#platform-engineering) | No fit | A concurrent monitor can abort deployment execution. Deployment and rollback are not research and merge; the inventory also records runtime AI routing |
+| Supplier bid evaluation | [Supply chain](../../critical-use-cases/use-case-inventory.md#supply-chain) | Validated | Independent bids are scored concurrently and merged, with approval. The inventory calls this the natural design; pre-run branch count is not established |
+| Architecture decision record (ADR) drafting | [SDLC](../../critical-use-cases/use-case-inventory.md#sdlc) | Validated | Parallel earlier-record retrieval and options generation feed a writer and team review. Options generation does not necessarily use a separate source |
+| Bug triage from logs | [Engineering](../../critical-use-cases/use-case-inventory.md#engineering) | Candidate | Parallel log/code research feeds synthesis. Who writes the Jira ticket, and whether writing is separate from research, are unknown |
+| Cross-brand product recommendation | [Marketing](../../critical-use-cases/use-case-inventory.md#marketing) | Validated | Separate catalogs feed synthesis and ranking, with fixed coordination. No mandatory human gate; restart behavior is not described |
+| Market landscape report | [Research & intel](../../critical-use-cases/use-case-inventory.md#research--intel) | Partial fit | Research and synthesis fit. Additional critique before writing is not covered; its independence is not established |
+| Case law research brief | [Legal](../../critical-use-cases/use-case-inventory.md#legal) | Partial fit | Parallel search and synthesis fit. Additional citation checking and sign-off are present; checking independence is not established |
+| Content repurposing pipeline | [Marketing](../../critical-use-cases/use-case-inventory.md#marketing) | Partial fit | Only the parallel pattern fits. Producing formats from one blog post is not independent-source research |
+| Closed-loop dependency & CVE remediation (fleet-wide) | [SDLC](../../critical-use-cases/use-case-inventory.md#sdlc) | No fit | Branches write and test fixes and open PRs; they are not read-only research |
+| Service deployment orchestration | [Platform engineering](../../critical-use-cases/use-case-inventory.md#platform-engineering) | No fit | Monitoring can abort effectful deployment; the inventory also records runtime AI routing |
 
 ## Open questions
 
-None. The fixed choices and their reasons are recorded below.
+None.
 
 ## Appendix: Design decisions
 
 ### Decisions taken, and why
 
-These are design choices for this draft, not claims of empirical optimality.
+These fixed choices remain. Finding references add a check to the existing branch-label rule.
 
 | Decision | Why |
 |---|---|
-| The execution engine runs a fixed plan. Agents never decide who runs next | Limits and records must be enforced outside the agents. Of 44 inventory rows classified as multi-agent, 38 have `Fixed/scripted` coordination, 2 have `AI-coordinated, routing`, and 4 leave it unspecified. These classifications do not prove use of this fixed-plan architecture |
-| The plan is built by rules from a template for the type of task, before work starts. A model does not choose the number or kind of branches | Keeps runs predictable and auditable, and cost bounded |
-| No branch can start more branches | Prevents runaway cost |
-| Branches cannot see each other's work until the join | Keeps findings independent and limits cross-branch influence; branches can run at the same time |
-| Branches are read-only | Research cannot cause a protected effect; the same boundary as the proposal/execution split |
-| Each branch is required or optional, set in the plan | Failure handling is decided before the run, not improvised during it |
-| One retry per failed branch, then the plan's rule applies | A bounded design default limits repeated work and cost; it is not evidence that most failures are temporary or that one retry is optimal |
-| A result built from fewer branches than planned is always marked partial | A silent gap looks like a complete answer |
-| Disagreements between branches are shown side by side, never resolved silently | A silent choice looks like a fact; the reader should decide |
-| Every claim carries the label of its branch. Unlabeled claims are removed | Readers can trace claimed origin; the check is a simple rule, not proof of correctness |
-| The join and the merge are separate steps | The join is mechanical; the merge may need judgment, so its output is a draft |
-| The checklist tests whether the parts are independent, not how big the job is | Capacity changes with models and is not a stable routing test; independence applies regardless of the reason for splitting |
-| A result that arrives after the join is ignored and recorded | Approved content remains identical to the recorded version |
+| The execution engine runs a fixed plan. Agents never decide who runs next | Limits need workflow control. The inventory has 44 multi-agent rows: 38 Fixed/scripted, 2 AI-coordinated, routing, and 4 unspecified. These labels do not prove this fixed-plan design |
+| The plan is built by rules from a template for the type of task, before work starts. A model does not choose the number or kind of branches | Makes runs predictable and auditable |
+| No branch can start more branches | Bounds work and cost |
+| Branches cannot see each other's work until the join | Keeps direct cross-branch influence out of research |
+| Branches are read-only | Research cannot cause a protected effect |
+| Each branch is required or optional, set in the plan | Failure handling is decided before the run |
+| One retry per failed branch, then the plan's rule applies | A design default within saved limits, not evidence that one retry is optimal |
+| A result built from fewer branches than planned is always marked partial | Makes missing work visible |
+| Disagreements between branches are shown side by side, never resolved silently | Lets the reader see the disagreement |
+| Every claim carries the label of its branch. Unlabeled claims are removed | Finding references also identify saved evidence. Neither check proves truth |
+| The join and the merge are separate steps | Collection uses rules; combining findings may need judgment |
+| The checklist tests whether the parts are independent, not how big the job is | Model capacity changes; independence is a stable routing test |
+| A result that arrives after the join is ignored and recorded | Keeps reviewed and released content unchanged |

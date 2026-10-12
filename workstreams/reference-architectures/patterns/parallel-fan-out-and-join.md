@@ -1,86 +1,70 @@
 # Parallel Fan-out and Join
 
-**Solves:** Running independent parts of a task at the same time and collecting them under a fixed rule, so a slow, failed, or missing part cannot hang the run or go unnoticed \
+**Solves:** Run independent parts of a task at the same time. Bound the wait and make failed or missing parts visible \
 **Used in:** [Parallel research and merge](../architectures/parallel-research-and-merge.md) \
 **Requires capabilities:** Execution engine · state/context store · audit log \
 **Related patterns:** [Branch isolation](branch-isolation.md) · [Durable wait](durable-wait.md)
 
 ## Problem
 
-A task has parts that do not need each other's results, so they can run at the same time. The workflow must decide how long to wait, what happens when a part fails, and how the result states what is missing. Without rules fixed in advance, a run can hang or quietly return less than requested.
+Independent parts can run at the same time. The workflow must decide how long to wait and what a failed part means. It must also show which parts have no accepted result.
 
 ## Why this is hard
 
-Parallel work creates several competing needs.
-
-- Waiting for everyone can hang on a stuck part; taking whatever arrived can silently omit important work.
-- Parts finish at different times, and a restart must not lose or repeat saved work.
-- Different result shapes make collection unreliable.
-- A coordinator that adds parts during execution can multiply cost.
-- Readers can mistake a partial result for a complete one.
+- Waiting for all parts can last forever. Taking only the first replies can hide missing work.
+- Parts finish at different times. Restart must not lose or repeat saved work.
+- An unmarked partial result can look complete.
+- Different result formats make collection unreliable. Adding branches during a run can increase cost without limit.
 
 ## Solution
 
-Fix the plan, run the branches, then collect their terminal outcomes at a join. A branch is one independent part; the join collects results and states, rather than interpreting the findings.
+Fix the branches before work starts. Run them in parallel, then join their final outcomes. Collection is separate from any later interpretation of the results.
 
-```text
-     plan, fixed before the first branch starts
-     A (required)   B (required)   C (optional)
-            |              |              |
-            v              v              v
-            A              B              C      run at the same time,
-            |              |              |      each with its own limits
-            +--------------+--------------+
-                           |
-              JOIN: every branch done, failed, or skipped
-                           |
-          +----------------+------------------+
-          |                                   |
-   all succeeded                        C missing, A and B ok
-   -> complete                          -> partial, and says so
-
-   A or B failed -> failed, or explicit handoff to a person
+```mermaid
+flowchart TB
+    plan[Fixed plan] --> branches["Parallel branches<br/>each required or optional"]
+    branches -- "accepted result or recorded failure" --> join["Join every branch status"]
+    join --> outcome["All accepted: complete<br/>Only optional missing: partial<br/>Required missing: fail or hand off"]
+    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    class plan,branches,join,outcome workflow
 ```
+
+A branch can be an agent or a conventional task, such as a database query. The parent workflow decides what follows the join. Complete or partial coverage does not mean the whole workflow has finished.
 
 ## Invariants (must hold in any implementation)
 
-These rules apply regardless of runtime or deployment.
-
-- The branches, their work, and their required-or-optional status are fixed before the first branch starts. Branches cannot add branches or change the plan.
-- Every branch has a time limit and cost limit; the whole run also has limits. Retries and recovery cannot reset them.
-- The join waits for a terminal outcome from every planned branch: done, failed, or explicitly skipped. Reaching a limit counts as failure; retry handling is bounded by the saved plan.
-- The joined output names every planned branch and its terminal state.
-- Fewer successful branches than planned always means a partial result. A failed or skipped required branch cannot produce a partial success: the run fails or records an explicit handoff.
-- Each completed result is saved durably before the branch is marked done. Recovery keeps these results and does not rerun finished branches.
-- Each result has the shape required by the plan; any other shape counts as failure.
-- Results arriving after the join are recorded and ignored.
+- The plan fixes branches, their work, and required-or-optional status before the first branch starts. Branches cannot add work or change the plan.
+- Each branch and the whole run have time and cost limits. Attempts and restarts cannot reset these limits.
+- The plan limits attempts. The join waits until every planned branch is done, failed, or explicitly skipped. A limit or invalid result format counts as failure.
+- The joined output names every branch and its final status.
+- An accepted result has the required format. Acceptance does not prove truth.
+- Complete coverage requires accepted results from all planned branches. Missing optional results give partial coverage, which is marked. A failed or skipped required branch causes failure or an explicit handoff, never partial success.
+- Save each accepted result durably before marking the branch done. Keep its run id, branch id, and attempt. Saved results are not repeated after restart.
+- Accept at most one result per branch. Record and ignore duplicate results, results from ended attempts, and results arriving after the join.
 
 ## Failure modes when violated
 
-Each shortcut breaks one of those rules in a visible way.
-
-- **Plan changes:** new branches keep discovering work and increasing the bill.
-- **Limits absent or reset:** a stuck source or repeated restart consumes time and money indefinitely.
-- **Join runs early:** slow but important sources are excluded before their deadlines.
-- **Branch states omitted:** readers assume every source was consulted when one was unavailable.
-- **Partial status omitted:** an incomplete answer is treated as complete.
-- **Required failure treated as partial success:** the result lacks an essential source but still proceeds.
-- **Done recorded before durable result:** a crash loses work already claimed complete; rerunning it adds cost or duplicates findings.
-- **Result shapes differ:** collection drops or misreads findings.
-- **Late results included:** released or approved content changes without a new decision.
+- **Plan changes:** added work increases cost beyond the agreed scope.
+- **Limits absent or reset:** a source that does not respond, or repeated restarts, keeps consuming resources.
+- **Join too early:** important slow replies are missing before their deadline.
+- **Branch status or partial marker missing:** a reader treats an incomplete result as complete.
+- **Required failure allowed through:** essential input is missing, but the run still proceeds as a success.
+- **Result not saved before done:** restart loses completed work. Duplicate results can count one finding twice.
+- **Wrong format accepted:** collection misreads or drops results.
+- **Late result merged:** released or approved content no longer matches its record.
 
 ## Implementation approaches (illustrative, not requirements)
 
-Implementations differ in **where parallel execution and the join rule are enforced**. Each row supplies part of the solution. Every implementation must meet all invariants above; the last column highlights gaps, not a complete checklist.
+Implementations differ in **where parallel execution and the join rule are enforced**. Each row contributes controls, not the whole pattern. All invariants still apply.
 
 | Enforced at | Documented mechanism | What it provides | What the implementation must add |
 |---|---|---|---|
-| Orchestration service | [AWS Step Functions Parallel state](https://docs.aws.amazon.com/step-functions/latest/dg/state-parallel.html) | Runs defined branches as concurrently as possible and waits for all to finish. An unhandled branch error fails the Parallel state and stops its branch execution, but not necessarily work already running | Branch deadlines and cost limits, run limits, required-or-optional handling, shape checks, terminal states, and partial labeling. Configure retries inside branches and durable run state: [Standard workflows persist state; Express does not](https://docs.aws.amazon.com/step-functions/latest/dg/choosing-workflow-type.html). Activity workers need cooperative stopping; running Lambda functions cannot be stopped. Record and ignore late results |
-| Messaging and integration layer | [Spring Integration scatter-gather](https://docs.spring.io/spring-integration/reference/scatter-gather.html) | Routes requests to recipients and aggregates correlated replies under a release rule. A configured finite gather timeout bounds waiting for the aggregate reply, not necessarily synchronous recipient execution; timeout does not itself produce a partial result | Asynchronous recipient execution, saved branch/reply state and restart-safe dispatch, branch/run limits, failure replies, fixed required-or-optional release rules, shape checks, and partial labeling. Retain completion records to reject and record late replies; durable reply storage alone is not recovery logic |
-| Agent framework | [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api) | Runs scheduled nodes in parallel within a graph step; reducers combine updates to shared state. Static edges support fixed fan-out; reducers alone are not a terminal-state join | A fixed plan and explicit join over every planned branch, required-or-optional failure handling, budgets, shape checks, and partial labeling. Configure a [persistent checkpointer and crash-safe writes](https://docs.langchain.com/oss/python/langgraph/checkpointers) for finished results; in-memory checkpoints do not survive restart. Per-attempt timeouts do not replace branch/run budgets |
+| Orchestration service | [AWS Step Functions Parallel state](https://docs.aws.amazon.com/step-functions/latest/dg/state-parallel.html) | Runs branches as concurrently as possible and waits for all. An unhandled branch error fails the state | Required/optional handling, limits, format checks, partial markers, and late-result records. Put retries inside branches. Use durable state; [Standard persists state, Express does not](https://docs.aws.amazon.com/step-functions/latest/dg/choosing-workflow-type.html). Stopping a branch does not stop running Lambda functions; activity workers need cooperative stopping |
+| Integration layer | [Spring Integration scatter-gather](https://docs.spring.io/spring-integration/reference/scatter-gather.html) | Routes requests and collects correlated replies. A configured gather timeout bounds waiting for the aggregate reply, not synchronous recipient execution | Async recipient execution, branch/run limits, failure replies, and a fixed release rule. Timeout alone does not produce a partial result. Save branch/reply state and completion records; saved replies alone do not provide restart-safe dispatch |
+| Agent framework | [LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api) | Runs parallel nodes and combines state updates. Static edges support fixed branches | An explicit join, required/optional failure handling, limits, format checks, and partial markers. Reducers alone are not the join. Configure [persistent, crash-safe checkpoints](https://docs.langchain.com/oss/python/langgraph/checkpointers); memory-only storage cannot survive restart. Per-attempt timeouts do not replace branch/run budgets |
 
 ## Known uses outside agents
 
-[Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html) sends a request to several recipients and combines their replies into one message. Its loan-broker example asks banks for quotes and selects the best offer. Step Functions Parallel states provide a similar fan-out and wait structure in a workflow. These are precedents for the mechanism, not proof of this pattern's failure, completeness, or recovery guarantees.
+[Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html) collects replies from several recipients. Its loan-broker example asks banks for quotes and selects an offer. This supports the basic structure, not every failure or recovery rule here.
 
-The agent-specific concern is that generated findings may contain unsupported or incomplete claims even when a branch succeeds. The join reports missing branches. In Parallel Research and Merge, the later merge also labels every claim with its branch; that label records claimed origin, not correctness.
+Agent findings can be wrong even when a branch finishes successfully. A research architecture must preserve claim origin separately from the join's record of missing branches. Neither record proves content quality.
