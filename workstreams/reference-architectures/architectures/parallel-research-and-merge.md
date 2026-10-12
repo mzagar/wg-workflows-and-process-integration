@@ -38,43 +38,78 @@ None. Agent-to-agent communication, independent checking, and fleet-wide remedia
 
 ## Structure
 
-The engine controls the workflow. Agents research and, when needed, combine findings. Their internal reasoning is not specified.
+This diagram shows the execution engine above the capabilities it coordinates. Read the numbered exchanges below it from left to right. Each parallel branch shows its agent, tools, and source from top to bottom, with separate context and permissions. The agent's internal reasoning is not specified.
 
 ```mermaid
 flowchart TB
-    task([Business task]) --> plan["Engine: fixed plan<br/>one brief per branch"]
-    plan -- brief --> a("Agent A<br/>source 1")
-    plan -- brief --> b("Agent B<br/>source 2")
-    plan -- brief --> c("Agent C<br/>source 3")
-    a & b & c -- "result or recorded failure" --> join["Engine: join<br/>apply the plan's rule"]
-    join -- "findings and every branch status" --> merge("Merge step<br/>claims with labels and references")
-    merge -- draft --> check["Engine: reference check"]
-    check --> review{Report review required?}
-    review -- no --> release["Engine: release result"]
-    review -- yes --> person([Person reviews exact version])
-    person -- approved --> release
-    person -- "rejected or no decision by deadline" --> stop([Record rejection, expiry, or handoff])
-    release --> read([Result to read])
+    E["Execution engine<br/>plan · limits · join · check · release"]
+    subgraph P["Parallel research · isolated branches"]
+        subgraph BC["Branch C"]
+            direction TB
+            C("Agent C") -->|"2. Tool call"| TC["Tools C"]
+            TC -->|"2. Result or error"| C
+            TC -->|"2a. Read / private draft"| IC["Source C<br/>private drafts C"]
+            IC -->|"2a. Data or error"| TC
+        end
+        subgraph BB["Branch B"]
+            direction TB
+            B("Agent B") -->|"2. Tool call"| TB["Tools B"]
+            TB -->|"2. Result or error"| B
+            TB -->|"2a. Read / private draft"| IB["Source B<br/>private drafts B"]
+            IB -->|"2a. Data or error"| TB
+        end
+        subgraph BA["Branch A"]
+            direction TB
+            A("Agent A") -->|"2. Tool call"| TA["Tools A"]
+            TA -->|"2. Result or error"| A
+            TA -->|"2a. Read / private draft"| IA["Source A<br/>private drafts A"]
+            IA -->|"2a. Data or error"| TA
+        end
+    end
+    M["Merge step<br/>rules or model"]
+    H["Human interaction surface<br/>optional report review"]
+    O([Released research result])
+    S[("State / context store")]
+    R[("Audit log / system of record")]
 
-    class plan,join,check,review,release workflow
-    class a,b,c,merge agent
-    class task,person,stop,read external
+    E -->|"1. Brief and limits"| C
+    C -->|"3. Findings or failure"| E
+    E -->|"1. Brief and limits"| B
+    B -->|"3. Findings or failure"| E
+    E -->|"1. Brief and limits"| A
+    A -->|"3. Findings or failure"| E
+    E -->|"4a. Accepted findings"| M
+    M -->|"4b. Draft and references"| E
+    E -->|"5a. Exact version and deadline"| H
+    H -->|"5b. Decision"| E
+    E -->|"6. Release after required approval"| O
+    E -->|"7. Save run"| S
+    S -->|"7. Restored run"| E
+    E -->|"8. Run events"| R
+
+    class E,TA,TB,TC,H,S,R workflow
+    class A,B,C agent
+    class IA,IB,IC,M,O external
     classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
     classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
+    style P fill:#fafafa,stroke:#94a3b8,color:#334155
+    style BA fill:#fffbf5,stroke:#fdba74,color:#7c2d12
+    style BB fill:#fffbf5,stroke:#fdba74,color:#7c2d12
+    style BC fill:#fffbf5,stroke:#fdba74,color:#7c2d12
 ```
 
-> **Legend:** blue = workflow control; orange = agent work; gray = a person, input, or outcome. A rule-based merge uses workflow control instead of an agent. Failure and cancellation paths are listed in Exit states.
+> **Legend:** blue = workflow control; orange = research agents; gray = sources, output, or a merge using rules or a model. Each arrow shows one direction of data exchange. Exchanges 1–6 follow the main path; 7–8 apply throughout, not after release. Report approval does not authorize a later protected action.
 
-| Capability | Responsibility | Charter basis |
-|---|---|---|
-| Execution engine | Builds the plan, starts and stops branches, applies limits, joins results, checks references, and resumes runs | 3A, 3B |
-| Research agents | Research their assigned sources | 3A, 3C |
-| Tool access layer | Permits source reads and private drafts, not protected effects | 3C |
-| Merge step | Combines findings by rules or model reasoning | 3A |
-| State/context store | Saves the plan, results, attempts, budgets, and waiting position | 3B |
-| Audit log | Records branch outcomes, checks, decisions, and release under one run id | 3B |
-| Human interaction surface | Shows the exact result and records the authorized reviewer's decision | 3D |
+| Capability | Exchanges | Responsibility | Charter basis |
+|---|---|---|---|
+| Execution engine | 1, 3–8 | Sends briefs (1); joins branch outcomes (3); invokes merge (4); checks labels and references before review (5) or release (6). Owns limits, retries, review decisions, saved state (7), and audit records (8) | 3A, 3B |
+| Research agents | 1, 2, 3 | Receive separate briefs (1), research through their own tools (2), and return findings or failure (3) | 3A, 3C |
+| Tool access layer | 2, 2a | Receives each agent's calls (2), permits assigned-source reads and private drafts (2a), and returns results. No protected-effect tools | 3C |
+| Merge step | 4a, 4b | Receives saved accepted findings and all branch states after the join (4a); returns a draft with branch labels and finding references (4b) | 3A |
+| State/context store | 7, throughout | Saves and restores the plan, findings, attempts, budgets, and waiting position. Completed branch results are saved as they finish | 3B |
+| Audit log | 8, throughout | Records branch outcomes, checks, decisions, and release under one run id | 3B |
+| Human interaction surface | 5a, 5b, if review is required | Shows the exact checked version and deadline (5a); returns the identified, authorized reviewer's decision (5b). The engine saves it before release | 3D |
 
 These are roles, not separate required services. Codes refer to [charter scope 3A–3F](../../../charter/charter.md#3-scope).
 
