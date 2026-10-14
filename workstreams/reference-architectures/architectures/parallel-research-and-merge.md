@@ -201,28 +201,45 @@ A strategy team needs a report. The [inventory](../../critical-use-cases/use-cas
 
 ### The run over time: where durability lives
 
-The engine saves progress before moving on. A saved waiting record, not a surviving worker, keeps the review pending.
+Read from top to bottom. This example shows approval of a partial report after two process restarts. The branch column groups separate agents that research in parallel. Other exits remain in Exit states and the recovery table.
 
 ```mermaid
-flowchart TD
-    plan[1. Plan] --> savedPlan[(Save plan and budgets)]
-    savedPlan --> research("2. Parallel research")
-    research --> savedResults[(Save each accepted result)]
-    savedResults --> join[3. Join] --> merge("4. Merge") --> check[5. Check]
-    check --> savedDraft[(Save exact checked version)]
-    savedDraft --> wait{{Wait for review or deadline}}
-    wait --> person([6a. Person decides]) --> savedDecision[(Save decision before resume)]
-    savedDecision -- approved --> release[6b. Release] --> recorded[(Record release)]
-    savedDecision -- rejected --> rejected([Record rejection])
-    wait -- deadline --> timeout([Record expiry or handoff])
-    restart([Restart during research]) -. "reuse saved results and budgets" .-> savedResults
-    restartWait([Restart during review]) -. "restore version and deadline" .-> savedDraft
-    class plan,savedPlan,savedResults,join,check,savedDraft,wait,savedDecision,release,recorded workflow
-    class research,merge agent
-    class person,rejected,timeout,restart,restartWait external
-    classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-    classDef agent fill:#ffedd5,stroke:#ea580c,color:#7c2d12
-    classDef external fill:#f3f4f6,stroke:#6b7280,color:#374151
+sequenceDiagram
+    participant E as Execution engine
+    participant B as Research branches
+    participant S as State store
+    participant H as Human review surface
+    participant R as Audit log
+
+    E->>S: 1. Save plan, briefs, limits, and attempts
+    S-->>E: Saved before dispatch
+    E->>B: 2. Start three branches in parallel
+    B-->>E: Filings findings accepted
+    E->>S: Save filings findings and completion
+
+    Note over E: Process dies and restarts
+    E->>S: Load the same run
+    S-->>E: Saved filings, branch states, attempts, and budgets
+    Note over E,B: Do not repeat filings or reset limits.
+    E->>B: Recover only unfinished branches without duplicate dispatch
+    B-->>E: News accepted and company data failed after one retry
+    Note over E,S: Save each outcome as it arrives. Keep attempts and consumed budgets.
+    E->>S: Save final branch outcomes
+    E->>E: 3–5. Join, invoke merge, and check references
+    E->>R: Record outcomes, merge, checks, and missing company data
+    E->>S: Save exact partial report, waiting position, and deadline
+    S-->>E: Saved before review
+    E->>H: 6. Review this exact partial report
+
+    Note over E,S: Wait for hours or days. No surviving worker is required.
+    Note over E: Process restarts during review
+    E->>S: Restore the pending review
+    S-->>E: Same version, waiting position, and deadline
+    H-->>E: Authorized reviewer approves exact version
+    E->>S: Save deduplicated decision before resume
+    S-->>E: Decision saved
+    E->>E: Reconcile release and release once per run
+    E->>R: Record decision, release, and Partial exit
 ```
 
 ### If the process dies during activity N
