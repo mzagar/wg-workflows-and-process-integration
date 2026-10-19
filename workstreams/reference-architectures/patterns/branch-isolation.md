@@ -1,51 +1,53 @@
 # Branch Isolation
 
-**Solves:** Keep parallel research branches independent. Prevent direct cross-branch access and messages, and prevent protected effects \
+**Solves:** Keeping parallel branches independent, so no branch can read another's work, message another, or cause a protected effect \
 **Used in:** [Parallel research and merge](../architectures/parallel-research-and-merge.md) \
-**Requires capabilities:** Execution engine · tool access layer · state/context store · audit log \
+**Requires capabilities:** Execution engine · tool access layer · audit log \
 **Related patterns:** [Parallel fan-out and join](parallel-fan-out-and-join.md) · [Proposal/execution split](proposal-execution-split.md)
+
+> **Terminology:** Core terms follow the [workflow taxonomy](../../taxonomy/terms.md). A **brief** is the instructions and initial context the execution engine gives one branch. *Brief* is not yet a taxonomy term.
 
 ## Problem
 
-Parallel agents often share a workspace, conversation, or credential. Shared access lets a branch influence another branch directly. Several independent views can become one repeated view.
+Parallel agents often share a workspace, conversation, or credential. Shared access lets one branch influence another directly. Several independent views can become one repeated view.
 
 ## Why this is hard
 
 - Sharing is easy, and many systems share by default.
 - Restrictions must remain effective when an agent follows hostile instructions.
-- A branch needs enough context to work without access to other branches.
+- A branch needs enough context to work without access to other branches' material.
 - The join and merge receive all findings. Hostile source content can reach them through those findings; branch isolation does not stop that path.
 
 ## Solution
 
-Give each branch its own brief, tools, credentials, and private workspace. Briefs contain the engine's instructions and initial context. The lanes do not share notes, credentials, or communication channels. Findings go to the join.
+Give each branch its own brief, tools, credentials, and private workspace. The brief contains the engine's initial context for that branch. Branches do not share notes, credentials, or communication channels. Findings go to the join.
 
 ```mermaid
 flowchart LR
-    subgraph A[Lane A]
-        a["Branch A<br/>brief, tools, private workspace<br/>source 1 read access"]
+    subgraph A[Branch A]
+        a["Branch A<br/>own brief, tools, private workspace<br/>source 1 read access"]
     end
-    subgraph B[Lane B]
-        b["Branch B<br/>brief, tools, private workspace<br/>source 2 read access"]
+    subgraph B[Branch B]
+        b["Branch B<br/>own brief, tools, private workspace<br/>source 2 read access"]
     end
-    subgraph C[Lane C]
-        c["Branch C<br/>brief, tools, private workspace<br/>source 3 read access"]
+    subgraph C[Branch C]
+        c["Branch C<br/>own brief, tools, private workspace<br/>source 3 read access"]
     end
     a & b & c -- findings --> join[Join]
     join -- collected findings --> merge("Merge<br/>rules or model")
-    classDef lane fill:#fffbf5,stroke:#fdba74,color:#7c2d12
+    classDef branch fill:#fffbf5,stroke:#fdba74,color:#7c2d12
     classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
     classDef mergeStep fill:#f3f4f6,stroke:#6b7280,color:#374151
-    class a,b,c lane
+    class a,b,c branch
     class join workflow
     class merge mergeStep
 ```
 
-The branches can share controlled infrastructure. They cannot share research context or access each other's work. The join uses rules; the merge can use rules or model reasoning. The merge treats returned findings as untrusted input and has no protected-effect tools.
+The branches can share controlled infrastructure. They cannot share working context or access each other's material. The join uses rules; the merge can use rules or model reasoning. The merge treats returned findings as untrusted input and has no protected-effect tools.
 
 ## Invariants (must hold in any implementation)
 
-- The engine writes each branch's brief. This is its only initial context; it then reads its permitted source.
+- The engine writes each branch's brief. This is its only initial context; the branch then reads its permitted source.
 - A branch cannot read another branch's work or message it. Only the join and merge receive the collected findings.
 - Tools permit reading the assigned source and writing private drafts. They cannot send, pay, or change a protected target.
 - Credentials permit only the source reads and private draft storage needed by that branch.
@@ -55,9 +57,9 @@ The branches can share controlled infrastructure. They cannot share research con
 
 ## Failure modes when violated
 
-- **Another branch controls the brief:** one branch can steer another before research starts.
+- **Another branch controls the brief:** one branch can steer another before its work starts.
 - **Shared notes or messages:** an error or hostile instruction can influence other branches directly.
-- **Protected-effect tool:** research can send, pay, or change a target without authorization.
+- **Protected-effect tool:** a branch can send, pay, or change a target without authorization.
 - **Credentials too broad:** a steered branch reaches systems outside its task.
 - **Prompt-only restriction:** the agent can follow an instruction that breaks the supposed boundary.
 - **Workspace reused:** old content leaks into another run.

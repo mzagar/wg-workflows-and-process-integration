@@ -1,8 +1,8 @@
 # Parallel Fan-out and Join
 
-**Solves:** Run independent parts of a task at the same time. Bound the wait and make failed or missing parts visible \
+**Solves:** Running independent parts of a task at the same time under a bounded wait, so failed or missing parts stay visible \
 **Used in:** [Parallel research and merge](../architectures/parallel-research-and-merge.md) \
-**Requires capabilities:** Execution engine · state/context store · audit log \
+**Requires capabilities:** Execution engine · state/context store \
 **Related patterns:** [Branch isolation](branch-isolation.md) · [Durable wait](durable-wait.md)
 
 ## Problem
@@ -67,4 +67,4 @@ Implementations differ in **where parallel execution and the join rule are enfor
 
 [Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html) collects replies from several recipients. Its loan-broker example asks banks for quotes and selects an offer. This supports the basic structure, not every failure or recovery rule here.
 
-Agent findings can be wrong even when a branch finishes successfully. A research architecture must preserve claim origin separately from the join's record of missing branches. Neither record proves content quality.
+Agent results can be wrong even when a branch finishes successfully. A workflow using this pattern must preserve the origin of each claim separately from the join's record of missing branches. Neither record proves content quality.
