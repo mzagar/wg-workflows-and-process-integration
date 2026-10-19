@@ -16,11 +16,11 @@ Parallel agents often share a workspace, conversation, or credential. Shared acc
 - Sharing is easy, and many systems share by default.
 - Restrictions must remain effective when an agent follows hostile instructions.
 - A branch needs enough context to work without access to other branches' material.
-- The join and merge receive all findings. Hostile source content can reach them through those findings; branch isolation does not stop that path.
+- Findings leave the branch, pass through the workflow's collecting step, and reach whatever consumes them. Hostile source content can travel that path; branch isolation does not stop it.
 
 ## Solution
 
-Give each branch its own brief, tools, credentials, and private workspace. The brief contains the engine's initial context for that branch. Branches do not share notes, credentials, or communication channels. Findings go to the join.
+Give each branch its own brief, tools, credentials, and private workspace. The brief contains the engine's initial context for that branch. Branches do not share notes, credentials, or communication channels. Findings leave through the workflow's collecting step, after the branch ends.
 
 ```mermaid
 flowchart LR
@@ -33,22 +33,19 @@ flowchart LR
     subgraph C[Branch C]
         c["Branch C<br/>own brief, tools, private workspace<br/>source 3 read access"]
     end
-    a & b & c -- findings --> join[Join]
-    join -- collected findings --> merge("Merge<br/>rules or model")
+    a & b & c -- findings --> collect["Collecting step<br/>rules"]
     classDef branch fill:#fffbf5,stroke:#fdba74,color:#7c2d12
     classDef workflow fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-    classDef mergeStep fill:#f3f4f6,stroke:#6b7280,color:#374151
     class a,b,c branch
-    class join workflow
-    class merge mergeStep
+    class collect workflow
 ```
 
-The branches can share controlled infrastructure. They cannot share working context or access each other's material. The join uses rules; the merge can use rules or model reasoning. The merge treats returned findings as untrusted input and has no protected-effect tools.
+The branches can share controlled infrastructure. They cannot share working context or access each other's material. The collecting step receives the findings after each branch ends, and whatever consumes them treats them as untrusted input without protected-effect tools. How collection and combining split is a decision for the composition that uses this pattern.
 
 ## Invariants (must hold in any implementation)
 
 - The engine writes each branch's brief. This is its only initial context; the branch then reads its permitted source.
-- A branch cannot read another branch's work or message it. Only the join and merge receive the collected findings.
+- A branch cannot read another branch's work or message it. Branch findings leave through the workflow's collecting step, after the branch ends.
 - Tools permit reading the assigned source and writing private drafts. They cannot send, pay, or change a protected target.
 - Credentials permit only the source reads and private draft storage needed by that branch.
 - Permissions, tool availability, and communication restrictions enforce these rules. Instructions alone do not.

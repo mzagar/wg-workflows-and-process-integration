@@ -21,6 +21,7 @@ Independent parts can run at the same time. The workflow must decide how long to
 Fix the branches before work starts. Run them in parallel, then join their final outcomes. Collection is separate from any later interpretation of the results.
 
 ```mermaid
+%%{init: {"flowchart": {"wrappingWidth": 320}}}%%
 flowchart TB
     plan[Fixed plan] --> branches["Parallel branches<br/>each required or optional"]
     branches -- "accepted result or recorded failure" --> join["Join every branch status"]
@@ -67,4 +68,4 @@ Implementations differ in **where parallel execution and the join rule are enfor
 
 [Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html) collects replies from several recipients. Its loan-broker example asks banks for quotes and selects an offer. This supports the basic structure, not every failure or recovery rule here.
 
-Agent results can be wrong even when a branch finishes successfully. A workflow using this pattern must preserve the origin of each claim separately from the join's record of missing branches. Neither record proves content quality.
+Agent results can be wrong even when a branch finishes successfully. This pattern preserves the origin of each branch result, separately from the join's record of missing branches. Linking a claim to the finding behind it belongs to the composition that merges the results. Neither record proves content quality.
