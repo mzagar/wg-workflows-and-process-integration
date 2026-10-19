@@ -19,10 +19,12 @@ Use this architecture when one request needs research from several independent s
 > - **accepted result** has the required format, not verified content.
 > - **finding reference** points to a saved finding in this run; the **reference check** checks those links and branch labels, not claim truth.
 
+**Reading paths:** Read *Is this your architecture?* to decide whether this composition fits. Read *Structure* and *Pattern composition* to review the design, and the worked scenario to see one run in practice. *Exit states*, *Composition considerations*, and the appendix record the guarantees and the fixed decisions.
 
 ## Is this your architecture? (checklist)
 
-All answers are yes: use this architecture; any answer is no: follow the route in the table.
+All answers are yes: use this architecture; any answer is no: follow the route in the table.  
+The same checklist works in reverse for an existing workflow: each “no” is a gap to close before adopting this architecture.
 
 | # | Question | If no, use instead |
 |---|---|---|
@@ -32,9 +34,11 @@ All answers are yes: use this architecture; any answer is no: follow the route i
 | 4 | Can the research parts work without communication between them? | This job needs agents that communicate. No matching RA is defined here yet |
 | 5 | Is the result only for reading, with any protected action handled separately? | Use [Human Approval](single-agent-human-approval.md) for human-authorized actions, or [Bounded Remediation](bounded-autonomous-remediation.md) for limited repair tasks. Other policy-authorized actions have no RA here yet |
 
+
 ## Variants
 
-None. Agent-to-agent communication, independent checking, and fleet-wide remediation are different jobs. A plan chosen or changed by agents during the run is also outside this architecture.
+None.  
+Agent-to-agent communication, independent checking, and fleet-wide remediation are different jobs. A plan chosen or changed by agents during the run is also outside this architecture.
 
 ## Structure
 
