@@ -19,7 +19,10 @@ Use this architecture when one request needs research from several independent s
 > - **accepted result** has the required format, not verified content.
 > - **finding reference** points to a saved finding in this run; the **reference check** checks those links and branch labels, not claim truth.
 
-**Reading paths:** Read *Is this your architecture?* to decide whether this composition fits. Read *Structure* and *Pattern composition* to review the design, and the worked scenario to see one run in practice. *Exit states*, *Composition considerations*, and the appendix record the guarantees and the fixed decisions.
+**Reading paths:**  
+Read *Is this your architecture?* to decide whether this composition fits.  
+Read *Structure* and *Pattern composition* to review the design, and the worked scenario to see one run in practice.  
+*Exit states*, *Composition considerations*, and the appendix record the guarantees and the fixed decisions.
 
 ## Is this your architecture? (checklist)
 
@@ -38,11 +41,15 @@ The same checklist works in reverse for an existing workflow: each “no” is a
 ## Variants
 
 None.  
-Agent-to-agent communication, independent checking, and fleet-wide remediation are different jobs. A plan chosen or changed by agents during the run is also outside this architecture.
+Agent-to-agent communication, independent checking, and fleet-wide remediation are different jobs.  
+A plan chosen or changed by agents during the run is also outside this architecture.
 
 ## Structure
 
-This diagram shows the execution engine above the capabilities it coordinates. Read the numbered exchanges below it from left to right. Each parallel branch shows its agent, tools, and source from top to bottom, with separate context and permissions. The agent's internal reasoning is not specified.
+This diagram shows the execution engine above the capabilities it coordinates.  
+Read the labelled exchanges below it from left to right.  
+Each parallel branch shows its agent, tools, and source from top to bottom, with separate context and permissions.  
+The agent's internal reasoning is not specified.
 
 ```mermaid
 flowchart TB
@@ -50,24 +57,24 @@ flowchart TB
     subgraph P["Parallel research · isolated branches"]
         subgraph BC["Branch C"]
             direction TB
-            C("Agent C") -->|"2. Tool call"| TC["Tools C"]
-            TC -->|"2. Result or error"| C
-            TC -->|"2a. Read / private draft"| IC["Source C<br/>private drafts C"]
-            IC -->|"2a. Data or error"| TC
+            C("Agent C") -->|"Tool call"| TC["Tools C"]
+            TC -->|"Result or error"| C
+            TC -->|"Read / private draft"| IC["Source C<br/>private drafts C"]
+            IC -->|"Data or error"| TC
         end
         subgraph BB["Branch B"]
             direction TB
-            B("Agent B") -->|"2. Tool call"| TB["Tools B"]
-            TB -->|"2. Result or error"| B
-            TB -->|"2a. Read / private draft"| IB["Source B<br/>private drafts B"]
-            IB -->|"2a. Data or error"| TB
+            B("Agent B") -->|"Tool call"| TB["Tools B"]
+            TB -->|"Result or error"| B
+            TB -->|"Read / private draft"| IB["Source B<br/>private drafts B"]
+            IB -->|"Data or error"| TB
         end
         subgraph BA["Branch A"]
             direction TB
-            A("Agent A") -->|"2. Tool call"| TA["Tools A"]
-            TA -->|"2. Result or error"| A
-            TA -->|"2a. Read / private draft"| IA["Source A<br/>private drafts A"]
-            IA -->|"2a. Data or error"| TA
+            A("Agent A") -->|"Tool call"| TA["Tools A"]
+            TA -->|"Result or error"| A
+            TA -->|"Read / private draft"| IA["Source A<br/>private drafts A"]
+            IA -->|"Data or error"| TA
         end
     end
     M["Merge step<br/>rules or model"]
@@ -76,20 +83,20 @@ flowchart TB
     S[("State / context store")]
     R[("Audit log / system of record")]
 
-    E -->|"1. Brief and limits"| C
-    C -->|"3. Findings or failure"| E
-    E -->|"1. Brief and limits"| B
-    B -->|"3. Findings or failure"| E
-    E -->|"1. Brief and limits"| A
-    A -->|"3. Findings or failure"| E
-    E -->|"4a. Accepted findings"| M
-    M -->|"4b. Draft and references"| E
-    E -->|"5a. Exact version and deadline"| H
-    H -->|"5b. Decision"| E
-    E -->|"6. Release after required approval"| O
-    E -->|"7. Save run"| S
-    S -->|"7. Restored run"| E
-    E -->|"8. Run events"| R
+    E -->|"Brief and limits"| C
+    C -->|"Findings or failure"| E
+    E -->|"Brief and limits"| B
+    B -->|"Findings or failure"| E
+    E -->|"Brief and limits"| A
+    A -->|"Findings or failure"| E
+    E -->|"Accepted findings"| M
+    M -->|"Draft and references"| E
+    E -->|"Exact version and deadline"| H
+    H -->|"Decision"| E
+    E -->|"Release after required approval"| O
+    E -->|"Save run"| S
+    S -->|"Restored run"| E
+    E -->|"Run events"| R
 
     class E,TA,TB,TC,H,S,R workflow
     class A,B,C agent
@@ -103,19 +110,19 @@ flowchart TB
     style BC fill:#fffbf5,stroke:#fdba74,color:#7c2d12
 ```
 
-> **Legend:** blue = workflow control; orange = research agents; gray = sources, output, or a merge using rules or a model. Each arrow shows one direction of data exchange. Exchanges 1–6 follow the main path; 7–8 apply throughout, not after release. Report approval does not authorize a later protected action.
+> **Legend:** blue = workflow control; orange = research agents; gray = sources, output, or a merge using rules or a model. Each arrow shows one direction of data exchange. State and audit exchanges apply throughout the run, not only after release. Report approval does not authorize a later protected action.
 
-| Capability | Exchanges | Responsibility | Charter basis |
-|---|---|---|---|
-| Execution engine | 1, 3–8 | Sends briefs (1); joins branch outcomes (3); invokes merge (4); checks labels and references before review (5) or release (6). Owns limits, retries, review decisions, saved state (7), and audit records (8) | 3A, 3B |
-| Research agents | 1, 2, 3 | Receive separate briefs (1), research through their own tools (2), and return findings or failure (3) | 3A, 3C |
-| Tool access layer | 2, 2a | Receives each agent's calls (2), permits assigned-source reads and private drafts (2a), and returns results. No protected-effect tools | 3C |
-| Merge step | 4a, 4b | Receives saved accepted findings and all branch states after the join (4a); returns a draft with branch labels and finding references (4b) | 3A |
-| State/context store | 7, throughout | Saves and restores the plan, findings, attempts, budgets, and waiting position. Completed branch results are saved as they finish | 3B |
-| Audit log | 8, throughout | Records branch outcomes, checks, decisions, and release under one run id | 3B |
-| Human interaction surface | 5a, 5b, if review is required | Shows the exact checked version and deadline (5a); returns the identified, authorized reviewer's decision (5b). The engine saves it before release | 3D |
+| Capability | Responsibility | Charter basis |
+|---|---|---|
+| Execution engine | Sends briefs; joins branch outcomes and applies the plan's rule; invokes the merge; checks labels and references before review or release. Owns limits, retries, review decisions, saved state and audit records | 3A, 3B |
+| Research agents | Receive separate briefs, research through their own tools, and return findings or failure | 3A, 3C |
+| Tool access layer | Receives each agent's calls, permits assigned-source reads and private drafts, and returns results or errors. No protected-effect tools | 3C |
+| Merge step | Receives saved accepted findings and all branch states after the join; returns a draft with branch labels and finding references | 3A |
+| State/context store, throughout the run | Saves and restores the plan, findings, attempts, budgets and waiting position. Completed branch results are saved as they finish | 3B |
+| Audit log, throughout the run | Records branch outcomes, checks, decisions and release under one run id | 3B |
+| Human interaction surface, only if review is required | Shows the exact checked version and deadline; returns the identified, authorized reviewer's decision. The engine saves it before release | 3D |
 
-These are roles, not separate required services. Codes refer to [charter scope 3A–3F](../../../charter/charter.md#3-scope).
+These are logical capability roles, not a required deployment. One platform may combine several roles, as long as the boundaries and guarantees stay enforceable. Codes refer to [charter scope 3A–3F](../../../charter/charter.md#3-scope).
 
 ## Pattern composition
 
@@ -215,9 +222,9 @@ sequenceDiagram
     participant H as Human review surface
     participant R as Audit log
 
-    E->>S: 1. Save plan, briefs, limits, and attempts
+    E->>S: Save plan, briefs, limits, and attempts
     S-->>E: Saved before dispatch
-    E->>B: 2. Start three branches in parallel
+    E->>B: Start three branches in parallel
     B-->>E: Filings findings accepted
     E->>S: Save filings findings and completion
 
@@ -229,11 +236,11 @@ sequenceDiagram
     B-->>E: News accepted and company data failed after one retry
     Note over E,S: Save each outcome as it arrives. Keep attempts and consumed budgets.
     E->>S: Save final branch outcomes
-    E->>E: 3–5. Join, invoke merge, and check references
+    E->>E: Join, invoke merge, and check references
     E->>R: Record outcomes, merge, checks, and missing company data
     E->>S: Save exact partial report, waiting position, and deadline
     S-->>E: Saved before review
-    E->>H: 6. Review this exact partial report
+    E->>H: Review this exact partial report
 
     Note over E,S: Wait for hours or days. No surviving worker is required.
     Note over E: Process restarts during review
@@ -252,12 +259,12 @@ Recovery keeps the same plan, retry count, and consumed budget. Repeated reads c
 
 | Activity | Recovery | Required control |
 |---|---|---|
-| 1. Plan and dispatch | Reload the plan; reconcile which branches started | Stable request/branch ids and dispatch deduplication |
-| 2. Research | Keep saved results; recover only unfinished branches | Durable results, attempt records, and unchanged budgets |
-| 3. Join | Reapply the saved rule to branch states | Saved outcomes, deadlines, and retry count |
-| 4. Merge | Use a saved completed draft or rerun from saved findings | Stable finding identifiers; no protected effect |
-| 5. Check | Reapply the rule to the saved draft | Same finding set and version-linked removal records |
-| 6. Review and release | Restore the exact review version and deadline; reconcile release before retry | Record decision before resume; deduplicate decisions and release |
+| Plan and dispatch | Reload the plan; reconcile which branches started | Stable request/branch ids and dispatch deduplication |
+| Research | Keep saved results; recover only unfinished branches | Durable results, attempt records, and unchanged budgets |
+| Join | Reapply the saved rule to branch states | Saved outcomes, deadlines, and retry count |
+| Merge | Use a saved completed draft or rerun from saved findings | Stable finding identifiers; no protected effect |
+| Check | Reapply the rule to the saved draft | Same finding set and version-linked removal records |
+| Review and release | Restore the exact review version and deadline; reconcile release before retry | Record decision before resume; deduplicate decisions and release |
 
 ## Composition considerations
 
